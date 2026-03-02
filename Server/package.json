@@ -1,0 +1,18 @@
+{
+  "name": "server_logic",
+  "version": "1.0.0",
+  "description": "A backend for Blog wewbsite.",
+  "license": "ISC",
+  "author": "Rakesh",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "mongoose": "^9.2.3",
+    "nodemon": "^3.1.14",
+    "prettier": "^3.8.1"
+  }
+}
