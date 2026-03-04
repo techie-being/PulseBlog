@@ -1,5 +1,7 @@
 import dotenv from "dotenv";
-dotenv.config()
+dotenv.config();
+import cookieParser from "cookie-parser";
+import cors from "cors";
 import express from 'express';
 
 const app = express()
@@ -14,7 +16,7 @@ app.use(cors())
 app.use(express.json({limit:"16kb"}))
 
 //configure server to clean garbage value from url convert in to req.body
-app.use(express(urlencoded({extended:"true",limit:"16kb"})))
+app.use(express.urlencoded({extended:"true",limit:"16kb"}))
 
 //configure server to check public folder before complex db query
 app.use(express.static("public"))
