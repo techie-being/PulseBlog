@@ -45,7 +45,7 @@ const userSchema = new Schema(
             type:String,
         },
 
-        tokenversion:{
+        tokenVersion:{
             type:Number,
             default:0
         }
@@ -65,7 +65,7 @@ userSchema.methods.isPasswordCorrect = async function(password){
     return await bcrypt.compare(password,this.password);
 };
 
-userSchema.methods.genearateAccessToken = function(){
+userSchema.methods.generateAccessToken = function(){
     const secret = process.env.ACCESS_TOKEN_SECRET;
     const expiry = process.env.ACCESS_TOKEN_EXPIRY;
 
@@ -77,7 +77,8 @@ userSchema.methods.genearateAccessToken = function(){
         {
             _id: this.id,
             email: this.email,
-            username:this.username
+            username:this.username,
+            tokenVersion: this.tokenVersion
         },
         secret,
         {
@@ -86,7 +87,7 @@ userSchema.methods.genearateAccessToken = function(){
     );
 };
 
-userSchema.methods.genearateRefreshToken =  function(){
+userSchema.methods.generateRefreshToken =  function(){
     const secret = process.env.REFRESH_TOKEN_SECRET;
     const expiry = process.env.REFRESH_TOKEN_EXPIRY;
 
