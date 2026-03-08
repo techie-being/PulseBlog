@@ -169,4 +169,25 @@ const userLogout = Asynchandler(async (req,res) => {
     )
 })
 
-export {registerUser,userLogin,userLogout};
+const refreshToken = Asynchandler(async (req,res) => {
+    
+
+})
+
+const getCurrentUser = Asynchandler(async (req,res)=>{
+    return res
+    .status(200)
+    .json(
+        
+        new Apiresponse(200,req.user,"User is currently loggedIn")
+    )
+
+})
+
+export {
+    registerUser
+    ,userLogin,
+    userLogout,
+    getCurrentUser,
+    refreshToken,
+};
