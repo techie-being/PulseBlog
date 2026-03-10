@@ -342,6 +342,86 @@ const updateCoverImage = Asynchandler(async (req,res) => {
     )
 })
 
+const userProfileDetails = Asynchandler(async (req,res) => {
+    const {username} = req.params;
+
+    if(!username?.trim()){
+        throw new Apierror(404,"user not found");
+    }
+
+    const Profle = await User.aggregate(
+        [
+            {
+                $match:{
+                    username:username.toLowerCase()
+                }
+            },
+            {
+                $lookup:{
+                    from:"subscriptions",
+                    localField:"_id",
+                    foreignField:"channel",
+                    as:"subscribers"
+                }
+            },
+            {
+                $lookup:{
+                    from:"subscriptions",
+                    localField:"_id",
+                    foreignField:"subscriber",
+                    as:"subscribedTo",
+                }
+            },
+            {
+                $addFields:{
+                    subscriberCount:{
+                        $size:"$subscribers"
+                    },
+                    subscribedToCount:{
+                        $size:"$subscribedTo"
+                    },
+                    isSubscribed:{
+                        $cond:{
+                            if: {
+                                $in:[req.user?._id,"$subscribers.subscriber"]
+                            },
+                            then:true,
+                            else:false,
+                        }
+                    }
+
+                }
+            },
+            {
+                $project:{
+                    username:1,
+                    //these will only show count to see a list od subscribers we 
+                    //can have to declare another controller that will fetch limited users at a time
+                    //we have to use subpipelines.
+                    subscriberCount:1,
+                    subscribedToCount:1,
+                    isSubscribed:1,
+                    fullname:1,
+                    avatar:1,
+                    coverImage:1,
+                }
+            },
+            
+        ]
+    );
+
+    if(!Profle?.length){
+        throw new Apierror(404,"Creator does not exist")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new Apiresponse(200,Profle[0],"user fetched successfully")
+    )
+
+
+})
 export {
     registerUser,
     userLogin,
@@ -352,4 +432,6 @@ export {
     updateAccountDetails,
     updateAvatar,
     updateCoverImage,
+    userProfileDetails,
+
 }
