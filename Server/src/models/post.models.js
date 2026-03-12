@@ -8,11 +8,19 @@ const postSchema = new Schema(
             index:true,
             trim:true
         },
+
         content:{
             type:String,
             required:true,
             
         },
+        
+        //store title and content as vector for better serach results
+        contentVector:{
+            type:[Number],
+            default:[]
+        },
+
         mediaImage:{
             type:String,
             required:true,  
@@ -23,15 +31,18 @@ const postSchema = new Schema(
             ref:"User",
             required:true,
         },
+
         views:{
             type:Number,
             default:0,
         },
+
         //tags defailt [] to prevent frontend errors when ther is no post
         tags:{
             type:[String],
             default:[]
         },
+
         isPublished:{
             type:Boolean,
             default:false

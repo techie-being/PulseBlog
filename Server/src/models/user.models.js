@@ -11,6 +11,11 @@ const userSchema = new Schema(
             lowercase:true,
             index:true,
         },
+        userIntrestVector:{
+            type:[Number],
+            default:new Array[384].fill(0)
+
+        },
         email:{
             type:String,
             required:true,
