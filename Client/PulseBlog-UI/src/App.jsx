@@ -1,15 +1,17 @@
-import { Route, Routes } from "react-router-dom";
-import Navbar from "./components/navbar.component";
+import { useState } from 'react'
 
-const App = () => {
-    return (
-        <Routes>
-         <Route path="/" element={<Navbar/>}>
-           <Route path="signin" element={<h1>Sign In page</h1>}/>
-           <Route path="signup" element={<h1>Sign Up page</h1>}/>
-         </Route>
-        </Routes> 
-           )
+import './App.css'
+
+function App() {
+  
+
+  return (
+    <>
+      <div className="flex h-screen items-center justify-center bg-brand-primary">
+        <h1 className="text-4xl font-bold text-white">PulseBlog is Ready</h1>
+      </div>
+    </>
+  )
 }
 
-export default App;
+export default App
