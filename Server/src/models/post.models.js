@@ -18,7 +18,7 @@ const postSchema = new Schema(
         //store title and content as vector for better serach results
         contentVector:{
             type:[Number],
-            default:[]
+            default:() => new Array(384).fill(0)
         },
 
         mediaImage:{

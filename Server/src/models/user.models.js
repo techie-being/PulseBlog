@@ -13,7 +13,7 @@ const userSchema = new Schema(
         },
         userIntrestVector:{
             type:[Number],
-            default:new Array[384].fill(0)
+            default:() => Array[384].fill(0)
 
         },
         email:{
@@ -23,12 +23,12 @@ const userSchema = new Schema(
             lowercase:true,
             trim:true,
         },
-        fullname:{
-            type:String,
-            required:true,
-            lowercase:true,
-            trim:true,
-        },
+        // fullname:{
+        //     type:String,
+        //     required:true,
+        //     lowercase:true,
+        //     trim:true,
+        // },
         password:{
             type:String,
             required:true,
@@ -43,7 +43,7 @@ const userSchema = new Schema(
         },
 
         coverImage:{
-            type:string
+            type:String
         },
         
         refreshToken:{
