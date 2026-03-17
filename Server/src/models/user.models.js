@@ -33,10 +33,24 @@ const userSchema = new Schema(
             type:String,
             required:true,
         },
+         
+        // it stores users used with method for registration or login
+        provider:{
+            type:String,
+            enum:['local','google'],
+            default:'local',
+        },
+
+        // it store a unique id for user provide by google
+        providerId:{
+            type:String
+        },
+
         bio:{
             type:String,
             lowercase:true,
         },
+
         avatar:{
             type:String,
             required:true,

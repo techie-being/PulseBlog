@@ -5,7 +5,7 @@ import {upload} from  "../middlewares/multer.middlewares.js"
 import { verifyJwt } from "../middlewares/auth.middleware.js";
 
 const router = Router()
-//firstRoute
+//first User-Routes
 router.route("/register").post(
     upload.fields(
         [
@@ -25,6 +25,11 @@ router.route("/register").post(
 router.route("/Login").post(userLogin);
 router.route("/Logout").post(verifyJwt,userLogout);
 router.route("/current-user").get(verifyJwt,getCurrentUser);
+
+
+
+router.route("google")
+
 
 
 
