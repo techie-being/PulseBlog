@@ -321,4 +321,5 @@ export {
   updatePost,
   getPostByAuthor,
   togglePostStatus,
+  searchPostsDiscovery,
 };
