@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { Route, Routes } from "react-router-dom";
+import Navbar from "./components/navbar.component";
+import UserAuthForm from "./pages/userAuthForm.page";
 
-import './App.css'
 const App = () => {
-  return (
-    <>
-      <div className="flex h-screen items-center justify-center bg-brand-primary">
-        <h1 className="text-4xl font-extrabold text-white">PulseBlog is Ready</h1>
-      </div>
-    </>
-  );
-};
+    return (
+        <Routes>
+         <Route path="/" element={<Navbar/>}>
+           <Route path="signin" element={<UserAuthForm type="sign-in"/>}/>
+           <Route path="signup" element={<UserAuthForm type="sign-up"/>}/>
+         </Route>
+        </Routes> 
+           )
+}
 
 export default App;
