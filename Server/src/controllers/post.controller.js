@@ -2,7 +2,7 @@ import { Asynchandler } from "../utils/Asynchandler.js";
 import { Apierror } from "../utils/Asynchandler.js";
 import { Apiresponse } from "../utils/Asynchandler.js";
 import { cloudinaryUploader } from "../utils/Cloudinary.js";
-import { post, post, post } from "../models/post.models.js";
+import { Post } from "../models/post.models.js";
 import { User } from "../models/user.models.js";
 
 const createPost = Asynchandler(async (req, res) => {
@@ -29,7 +29,7 @@ const createPost = Asynchandler(async (req, res) => {
     throw new Apierror(500,"embedding not generated due to some internal error")
   }
 
-  const createdPost = await post.create({
+  const createdPost = await Post.create({
     title,
     content,
     mediaImage: thumbnail.url,
@@ -49,7 +49,7 @@ const getAllPost = Asynchandler(async (req, res) => {
   const guest = !req.user;
 
   if (guest) {
-    const Post = await post
+    const Post = await Post
       .find({ isPublished: true })
       .populate("owner", "username ", "avatar")
       .sort({ createdAt: -1 });
@@ -59,7 +59,7 @@ const getAllPost = Asynchandler(async (req, res) => {
       .json(new Apiresponse(200, latestPost, "posts fetched successfully"));
   }
 
-  const smartFeed = await post.aggregate([
+  const smartFeed = await Post.aggregate([
     {
       $vectorSearch: {
         index: "vector_index",
@@ -109,7 +109,7 @@ const getAllPost = Asynchandler(async (req, res) => {
 const getPostById = Asynchandler(async (req, res) => {
   const { slug } = req.params;
 
-  const Post = await post
+  const Post = await Post
     .findOne({ slug, isPublished: true })
     .populate("owner", "username avatar", "views");
 
@@ -123,7 +123,7 @@ const getPostById = Asynchandler(async (req, res) => {
 const deletePost = Asynchandler(async (req, res) => {
   const { postId } = req.params;
 
-  const foundPost = await post.findById(postId);
+  const foundPost = await Post.findById(postId);
 
   if (!foundPost) {
     throw new Apierror(404, "posts not found");
@@ -143,7 +143,7 @@ const deletePost = Asynchandler(async (req, res) => {
     await cloudinaryUploader.destroy(publicId);
   }
 
-  await post.findByIdAndDelete(postId);
+  await Post.findByIdAndDelete(postId);
 
   return res
     .status(200)
@@ -154,7 +154,7 @@ const deletePost = Asynchandler(async (req, res) => {
 const updatePost = Asynchandler(async (req, res) => {
   const { postId } = req.params;
 
-  const findPost = await post.findById(postId);
+  const findPost = await Post.findById(postId);
 
   if (!findPost) {
     throw new Apierror(404, "Post not found");
@@ -211,7 +211,7 @@ const getPostByAuthor = Asynchandler(async (req, res) => {
     dbQuery.isPublished = true;
   }
 
-  const allPosts = await post
+  const allPosts = await Post
     .find({ owner: userId})
     .sort({
       createdAt: -1,
@@ -238,7 +238,7 @@ const togglePostStatus = Asynchandler(async (req, res) => {
   //verify jwt
   const { postId } = req.params;
 
-  const Post = await post.findById(postId);
+  const Post = await Post.findById(postId);
 
   if (!Post) {
     throw new Apierror(404, "post not found");
@@ -265,7 +265,7 @@ const searchPostsDiscovery = Asynchandler(async (req,res) => {
 
   const vector = await generateEmbedding(query);
 
-  const posts = await post.aggregate(
+  const posts = await Post.aggregate(
     [
       {
         $vectorSearch:{

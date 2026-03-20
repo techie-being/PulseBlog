@@ -55,4 +55,4 @@ const postSchema = new Schema(
 
 //for search bar using title
 postSchema.index({ title: 'text', content: 'text' });
-export const post = mongoose.model("post",postSchema)
+export const Post = mongoose.model("Post",postSchema)
