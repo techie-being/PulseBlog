@@ -105,6 +105,7 @@ const getAllPost = Asynchandler(async (req, res) => {
 });
 
 //it converts title in to slug then find post and return it
+// using search
 const getPostById = Asynchandler(async (req, res) => {
   const { slug } = req.params;
 
@@ -197,10 +198,21 @@ const updatePost = Asynchandler(async (req, res) => {
 });
 
 const getPostByAuthor = Asynchandler(async (req, res) => {
+  //verfiy jwt to get userId
   const { userId } = req.params;
 
+  const loggedInUserId = req.user?._id; 
+
+  const isOwner = loggedInUserId && loggedInUserId.toString() === userId.toString();
+
+  const dbQuery = { owner: userId };
+
+  if (!isOwner) {
+    dbQuery.isPublished = true;
+  }
+
   const allPosts = await post
-    .find({ owner: userId, isPublished: false })
+    .find({ owner: userId})
     .sort({
       createdAt: -1,
     })
@@ -259,7 +271,7 @@ const searchPostsDiscovery = Asynchandler(async (req,res) => {
         $vectorSearch:{
           index:"vector_index",
           path:"contentVector",
-          queryVector:"vector",
+          queryVector:vector,
           numCandidates:100,
           limit:10,
           filter:{isPublished:{$eq:true}}
