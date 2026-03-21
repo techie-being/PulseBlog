@@ -3,7 +3,7 @@ import { User } from "./user.models.js";
 
 const likeSchema = new Schema(
     {
-        likerUserId:{
+        likedBy:{
             type:Schema.Types.ObjectId,
             ref:"User",
             
