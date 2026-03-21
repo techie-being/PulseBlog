@@ -43,17 +43,17 @@ const postSchema = new Schema(
             default:[]
         },
 
-        likes:{
+        likeCount:{
             type:Number,
             default:0
         },
 
-        comment:{
+        commentCount:{
             type:Number,
             default:null,
         },
 
-        share:{
+        shareCount:{
             type:Number,
             default:0
         },
