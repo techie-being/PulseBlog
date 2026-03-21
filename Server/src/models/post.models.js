@@ -43,6 +43,21 @@ const postSchema = new Schema(
             default:[]
         },
 
+        likeCount:{
+            type:Number,
+            default:0
+        },
+
+        commentCount:{
+            type:Number,
+            default:null,
+        },
+
+        shareCount:{
+            type:Number,
+            default:0
+        },
+
         isPublished:{
             type:Boolean,
             default:false
