@@ -68,6 +68,31 @@ const postSchema = new Schema(
     {timestamps:true}
 )
 
+
+postSchema.post("save", async function (doc, next) {
+    try {
+        await mongoose.model("User").findByIdAndUpdate(doc.owner, {
+            $inc: { postsCount: 1 }
+        });
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
+
+
+postSchema.post("findOneAndDelete", async function (doc, next) {
+    try {
+        if (doc) {
+            await mongoose.model("User").findByIdAndUpdate(doc.owner, {
+                $inc: { postsCount: -1 }
+            });
+        }
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
 //for search bar using title
 postSchema.index({ title: 'text', content: 'text' });
 export const Post = mongoose.model("Post",postSchema)

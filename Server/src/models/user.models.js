@@ -67,7 +67,13 @@ const userSchema = new Schema(
         tokenVersion:{
             type:Number,
             default:0
+        },
+
+        postCount:{
+            type:Number,
+            default:0,
         }
+
     },
     {timestamps:true}
 )
@@ -79,6 +85,7 @@ userSchema.pre("save",async function(next){
     if(!this.isModified("password")) return next();
     this.password = await bcrypt.hash(this.password,10);
 });
+
 
 userSchema.methods.isPasswordCorrect = async function(password){
     return await bcrypt.compare(password,this.password);
@@ -124,5 +131,7 @@ userSchema.methods.generateRefreshToken =  function(){
         }
     );
 };
+
+
 
 export const User = mongoose.model("User",userSchema)
