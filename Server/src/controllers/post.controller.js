@@ -1,6 +1,7 @@
 import { Asynchandler } from "../utils/Asynchandler.js";
 import { Apierror } from "../utils/Asynchandler.js";
 import { Apiresponse } from "../utils/Asynchandler.js";
+import {paginateQuery} from "../utils/pagination.js"
 import { cloudinaryUploader } from "../utils/Cloudinary.js";
 import { Post } from "../models/post.models.js";
 import { User } from "../models/user.models.js";
@@ -109,15 +110,15 @@ const getAllPost = Asynchandler(async (req, res) => {
 const getPostById = Asynchandler(async (req, res) => {
   const { slug } = req.params;
 
-  const Post = await Post
+  const post = await Post
     .findOne({ slug, isPublished: true })
     .populate("owner", "username avatar", "views");
 
-  if (!Post) {
-    throw new Apierror(404, "post does nit found");
+  if (!post) {
+    throw new Apierror(404, "post does not found");
   }
 
-  return res.status(200).json(200, Post, "PostById fetched successfully");
+  return res.status(200).json(200, post, "PostById fetched successfully");
 });
 
 const deletePost = Asynchandler(async (req, res) => {
@@ -201,6 +202,8 @@ const getPostByAuthor = Asynchandler(async (req, res) => {
   //verfiy jwt to get userId
   const { userId } = req.params;
 
+  const {page,limit}  = req.query;
+
   const loggedInUserId = req.user?._id; 
 
   const isOwner = loggedInUserId && loggedInUserId.toString() === userId.toString();
@@ -211,24 +214,21 @@ const getPostByAuthor = Asynchandler(async (req, res) => {
     dbQuery.isPublished = true;
   }
 
-  const allPosts = await Post
-    .find({ owner: userId})
-    .sort({
-      createdAt: -1,
-    })
-    .populate("owner", "username avatar");
+  const result = await paginateQuery(Post, dbQuery, page, limit, {
+    populate: { path: "owner", select: "username avatar" },
+    sort: { createdAt: -1 }
+  });
 
-  if (allPosts.length == 0) {
-    return res.status(200).json({
-      status: 200,
-      data: [],
-      message: "no posts till yet",
-    });
+  
+  if (!result.data || result.data.length === 0) {
+    return res.status(200).json(
+      new Apiresponse(200, { data: [], pagination: result.pagination }, "No posts found for this user")
+    );
   }
 
   return res.status(200).json({
     status: 200,
-    data: allPosts,
+    data: result,
     message: "All posts fetched successfully",
   });
 });
