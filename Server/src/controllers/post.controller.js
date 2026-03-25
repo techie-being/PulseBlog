@@ -2,6 +2,8 @@ import { Asynchandler } from "../utils/Asynchandler.js";
 import { Apierror } from "../utils/Asynchandler.js";
 import { Apiresponse } from "../utils/Asynchandler.js";
 import {paginateQuery} from "../utils/pagination.js"
+import {paginateAggregate} from "../utils/pagination.js"
+
 import { cloudinaryUploader } from "../utils/Cloudinary.js";
 import { Post } from "../models/post.models.js";
 import { User } from "../models/user.models.js";
@@ -47,17 +49,25 @@ const createPost = Asynchandler(async (req, res) => {
 
 //home feed
 const getAllPost = Asynchandler(async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+
   const guest = !req.user;
 
   if (guest) {
-    const Post = await Post
-      .find({ isPublished: true })
-      .populate("owner", "username ", "avatar")
-      .sort({ createdAt: -1 });
+    const filter = { isPublished: true };
+    const result = await paginateQuery(Post, filter, page, limit, {
+      populate: { path: "owner", select: "username avatar" },
+      sort: { createdAt: -1 }
+    });
 
     return res
       .status(200)
-      .json(new Apiresponse(200, latestPost, "posts fetched successfully"));
+      .json(new Apiresponse({
+        status:200,
+        data:result,
+        message:"posts fetched succesfully"
+
+      }));
   }
 
   const smartFeed = await Post.aggregate([
@@ -67,7 +77,7 @@ const getAllPost = Asynchandler(async (req, res) => {
         path: "contentVector",
         queryVector: req.user.userIntrestVector,
         numCandidates: 100,
-        limit: 10,
+        limit: 100,
       },
     },
 
@@ -96,13 +106,19 @@ const getAllPost = Asynchandler(async (req, res) => {
     },
 
     {
-      $unwind: "owner",
+      $unwind: "$owner",
     },
   ]);
 
+  const result = await paginateAggregate(Post, smartFeed, page, limit);
+
   return res
     .status(200)
-    .json(200, smartFeed, "feed based on user fetched successfully");
+    .json({
+      status:200,
+      data:result,
+      message:"user preference related post fetched successfully"
+    });
 });
 
 //it converts title in to slug then find post and return it
@@ -261,11 +277,15 @@ const togglePostStatus = Asynchandler(async (req, res) => {
 });
 
 const searchPostsDiscovery = Asynchandler(async (req,res) => {
-  const {query} = req.query;
+  const {query,page=1,limit=1} = req.query;
+
+  if (!query) {
+    throw new Apierror(400, "Search query is required");
+  }
 
   const vector = await generateEmbedding(query);
 
-  const posts = await Post.aggregate(
+  const pipeline = await Post.aggregate(
     [
       {
         $vectorSearch:{
@@ -287,7 +307,7 @@ const searchPostsDiscovery = Asynchandler(async (req,res) => {
         }
       },
       {
-        $unwind:"owner"
+        $unwind:"$owner"
       },
       {
         $addFields:{
@@ -309,13 +329,15 @@ const searchPostsDiscovery = Asynchandler(async (req,res) => {
     ]
   )
 
+  const result = await paginateAggregate(Post, pipeline, page, limit);
+
   return res
   .status(200)
   .json(
     new Apiresponse(
         {
           status:200,
-          data:posts,
+          data:result,
           message:"top Post recommended successfully"
         }
     )
