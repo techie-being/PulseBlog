@@ -1,5 +1,3 @@
-
-
 const paginateQuery = async (model,filter={},page=1,limit=10,options={}) => {
     const pageNum = Math.max(1,Number(page));
     const limitNum = Math.max(1,Number(limit));
