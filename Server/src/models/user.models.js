@@ -16,6 +16,17 @@ const userSchema = new Schema(
             default:() => Array[384].fill(0)
 
         },
+
+        explicitPreferences: {
+            type: [String],
+            default:[]
+        },
+
+        isNewUser: {
+            type: Boolean,
+            default: true
+        },
+
         email:{
             type:String,
             required:true,
@@ -23,12 +34,14 @@ const userSchema = new Schema(
             lowercase:true,
             trim:true,
         },
+
         fullname:{
             type:String,
             required:true,
             lowercase:true,
             trim:true,
         },
+        
         password:{
             type:String,
             required:true,
