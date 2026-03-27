@@ -3,6 +3,7 @@ import { Apierror } from "../utils/Apierror.js";
 import { Apiresponse } from "../utils/Apiresponse.js";
 import { User } from "../models/user.models.js";
 import { cloudinaryUploader } from "../utils/Cloudinary.js";
+import { generateEmbedding } from "../utils/Embedding.js";
 
 const options = {
   httpOnly: true,
@@ -422,6 +423,46 @@ const userProfileDetails = Asynchandler(async (req, res) => {
   return res
     .status(200)
     .json(new Apiresponse(200, Profle[0], "user fetched successfully"));
+});
+
+const completeOnboarding = Asynchandler(async (req, res) => {
+  
+    const { interests } = req.body; 
+
+    if (!interests || !Array.isArray(interests) || interests.length === 0) {
+        throw new Apierror(400, "Please select at least one interest");
+    }
+
+    const interestString = interests.join(" ");
+
+    const currentVector = await generateEmbedding(interestString);
+
+    if (!currentVector) {
+        throw new Apierror(500, "Failed to generate interest profile. Try again.");
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: {
+                userInterest: currentVector,
+                isNewUser: false,
+                // Best practice: Save the text tags too for filtering later
+                explicitPreferences: interests 
+            }
+        },
+        { new: true } 
+    );
+
+    if (!updatedUser) {
+        throw new Apierror(404, "User profile not found");
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: "User preference and vector profile stored successfully",
+        data: { isNewUser: updatedUser.isNewUser }
+    });
 });
 
 export {

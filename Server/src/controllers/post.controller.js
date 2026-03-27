@@ -1,8 +1,9 @@
 import { Asynchandler } from "../utils/Asynchandler.js";
 import { Apierror } from "../utils/Asynchandler.js";
 import { Apiresponse } from "../utils/Asynchandler.js";
-import {paginateQuery} from "../utils/pagination.js"
+import {paginateQuery} from "../utils/pagination.js";
 import {paginateAggregate} from "../utils/pagination.js"
+import {generateEmbedding} from "../utils/pagination.js"
 
 import { cloudinaryUploader } from "../utils/Cloudinary.js";
 import { Post } from "../models/post.models.js";
@@ -51,9 +52,9 @@ const createPost = Asynchandler(async (req, res) => {
 const getAllPost = Asynchandler(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
 
-  const guest = !req.user;
+  const isColdStart = !req.user || !req.user.userIntrestVector || req.user.userIntrestVector.length === 0;
 
-  if (guest) {
+  if (isColdStart) {
     const filter = { isPublished: true };
     const result = await paginateQuery(Post, filter, page, limit, {
       populate: { path: "owner", select: "username avatar" },
@@ -70,7 +71,7 @@ const getAllPost = Asynchandler(async (req, res) => {
       }));
   }
 
-  const smartFeed = await Post.aggregate([
+  const smartFeed = [
     {
       $vectorSearch: {
         index: "vector_index",
@@ -108,7 +109,7 @@ const getAllPost = Asynchandler(async (req, res) => {
     {
       $unwind: "$owner",
     },
-  ]);
+  ];
 
   const result = await paginateAggregate(Post, smartFeed, page, limit);
 
@@ -347,6 +348,37 @@ const searchPostsDiscovery = Asynchandler(async (req,res) => {
 
 })
 
+const viewsCount = Asynchandler(async (req,res) => {
+  const {postId} = req.params;
+
+  const updatePost = await Post.findByIdAndUpdate(
+    postId,
+    {
+      $inc:{
+        views:1
+      }
+    },
+    {
+      new:true,
+      runValidators:false
+    }
+  )
+
+  if(!updatePost){
+    throw new Apierror(404,"post does not find");
+  }
+
+  return res
+  .status(200)
+  json(
+    {
+      status:200,
+      data:updatePost.viewsCount,
+      message:"views updated successFully"
+    }
+  )
+})
+
 export {
   createPost,
   getAllPost,
@@ -356,4 +388,5 @@ export {
   getPostByAuthor,
   togglePostStatus,
   searchPostsDiscovery,
+  viewsCount
 };
