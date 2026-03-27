@@ -1,5 +1,8 @@
 import mongoose,{Schema} from "mongoose";
 import { User } from "./user.models";
+import { nanoid } from "nanoid";
+import slugify from "slugify";
+
 const postSchema = new Schema(
     {
         title:{
@@ -41,6 +44,12 @@ const postSchema = new Schema(
         tags:{
             type:[String],
             default:[]
+        },
+
+        slug: { 
+            type: String, 
+            unique: true, 
+            index: true 
         },
 
         likeCount:{
@@ -92,6 +101,18 @@ postSchema.post("findOneAndDelete", async function (doc, next) {
     } catch (error) {
         next(error);
     }
+});
+
+postSchema.pre('save', function (next) {
+  if (this.isModified('title')) {
+    this.slug = slugify(this.title, { 
+      lower: true,   
+      strict: true,  
+      trim: true     
+    });
+    this.slug = `${baseSlug}-${nanoid(6)}`;
+  }
+  next();
 });
 //for search bar using title
 postSchema.index({ title: 'text', content: 'text' });
