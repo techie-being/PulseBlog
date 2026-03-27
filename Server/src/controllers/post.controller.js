@@ -348,6 +348,37 @@ const searchPostsDiscovery = Asynchandler(async (req,res) => {
 
 })
 
+const viewsCount = Asynchandler(async (req,res) => {
+  const {postId} = req.params;
+
+  const updatePost = await Post.findByIdAndUpdate(
+    postId,
+    {
+      $inc:{
+        views:1
+      }
+    },
+    {
+      new:true,
+      runValidators:false
+    }
+  )
+
+  if(!updatePost){
+    throw new Apierror(404,"post does not find");
+  }
+
+  return res
+  .status(200)
+  json(
+    {
+      status:200,
+      data:updatePost.viewsCount,
+      message:"views updated successFully"
+    }
+  )
+})
+
 export {
   createPost,
   getAllPost,
@@ -357,4 +388,5 @@ export {
   getPostByAuthor,
   togglePostStatus,
   searchPostsDiscovery,
+  viewsCount
 };
