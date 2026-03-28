@@ -476,4 +476,5 @@ export {
   updateAvatar,
   updateCoverImage,
   userProfileDetails,
+  generateAccessAndRefreshToken,
 };
