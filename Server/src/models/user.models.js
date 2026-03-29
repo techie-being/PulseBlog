@@ -13,7 +13,8 @@ const userSchema = new Schema(
         },
         userIntrestVector:{
             type:[Number],
-            default:() => Array[384].fill(0)
+            // default:() => new Array[384].fill(0)
+            default: () => new Array(384).fill(0)
 
         },
 
@@ -37,8 +38,6 @@ const userSchema = new Schema(
 
         fullname:{
             type:String,
-            required:true,
-            lowercase:true,
             trim:true,
         },
         
@@ -94,8 +93,8 @@ const userSchema = new Schema(
 
 
 //this hook prevents password hashing for every user operation
-userSchema.pre("save",async function(next){
-    if(!this.isModified("password")) return next();
+userSchema.pre("save",async function(){
+    if(!this.isModified("password")) return ;
     this.password = await bcrypt.hash(this.password,10);
 });
 

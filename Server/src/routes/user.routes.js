@@ -5,10 +5,19 @@ import {
   userLogout,
   getCurrentUser,
   generateAccessAndRefreshToken,
+  changePassword,
+  updateAccountDetails,
+  updateAvatar,
+  updateCoverImage,
   refreshToken,
+  userProfileDetails ,
+  completeOnboarding
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middlewares.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
+import { getOptionalUser } from "../middlewares/optionalAuth.middleware.js";
+
+
 import passport from "passport";
 
 const router = Router();
@@ -30,7 +39,20 @@ router.route("/register").post(
 
 router.route("/Login").post(userLogin);
 router.route("/Logout").post(verifyJwt, userLogout);
+router.route("/refresh-token").post(refreshToken);
 router.route("/current-user").get(verifyJwt, getCurrentUser);
+router.route("/change-password").patch(verifyJwt,changePassword)
+router.route("/update-account").patch(verifyJwt,updateAccountDetails)
+router.route("/update-account").patch(verifyJwt,updateAccountDetails)
+router.route("/update-avatar").patch(verifyJwt,upload.single("avatar"),updateAvatar)
+router.route("/update-coverImage").patch(verifyJwt,upload.single("coverImage"),updateCoverImage)
+//search profile
+router.route("/profile-details/:username").get(getOptionalUser,userProfileDetails )
+router.route("/complete-onboarding").patch(verifyJwt,completeOnboarding)
+
+
+
+
 
 // Social Auth routes
 router.route("/google").get(
