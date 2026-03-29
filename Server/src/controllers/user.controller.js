@@ -4,6 +4,8 @@ import { Apiresponse } from "../utils/Apiresponse.js";
 import { User } from "../models/user.models.js";
 import { cloudinaryUploader } from "../utils/Cloudinary.js";
 import { generateEmbedding } from "../utils/Embedding.js";
+import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 const options = {
   httpOnly: true,
@@ -169,15 +171,23 @@ const userLogout = Asynchandler(async (req, res) => {
 });
 
 const refreshToken = Asynchandler(async (req, res) => {
+  // 1. Extraction (Added .trim() to prevent malformed errors from hidden spaces)
+  const incomingRefreshToken = (
+    req.cookies?.refreshToken || req.body.refreshToken
+  )?.trim();
+
+  if (!incomingRefreshToken) {
+    throw new Apierror(401, "Refresh token is missing");
+  }
+
   try {
-    const incomingRefreshToken =
-      req.cookies?.refreshToken || req.body.refreshToken;
+    console.log(
+      "SECRET CHECK:",
+      process.env.REFRESH_TOKEN_SECRET ? "Exists" : "MISSING!",
+    );
+    console.log("TOKEN STRING:", incomingRefreshToken);
 
-    if (!incomingRefreshToken) {
-      throw new Apierror(401, "Unauthorize to access");
-    }
-
-    const decodedToken = await Jwt.verify(
+    const decodedToken = jwt.verify(
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET,
     );
@@ -185,30 +195,30 @@ const refreshToken = Asynchandler(async (req, res) => {
     const user = await User.findById(decodedToken._id);
 
     if (!user) {
-      throw new Apierror(404, "user not found");
+      throw new Apierror(404, "User not found");
     }
 
+    // 3. Database Sync Check
     if (incomingRefreshToken !== user?.refreshToken) {
-      throw new Apierror(401, "Invalid refreshToken");
+      throw new Apierror(401, "Refresh token is expired or used");
     }
 
-    const { newAccessToken, newRefreshToken } = generateAccessAndRefreshToken(
+    // 4. Token Rotation
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
       user._id,
     );
 
+    // 5. Response
     return res
       .status(200)
-      .cookie("accessToken", newAccessToken, options)
-      .cookie("refreshToken", newRefreshToken, options)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", refreshToken, options)
       .json(
-        {
-          accessToken: newAccessToken,
-          refreshToken: newRefreshToken,
-        },
-        new Apiresponse(200, "access and refresh token generated"),
+        new Apiresponse(200, { accessToken, refreshToken }, "Tokens refreshed"),
       );
   } catch (error) {
-    console.error("refresh token endpont error", error);
+    // 6. Critical: This sends the error back to Postman
+    throw new Apierror(401, error?.message || "Invalid refresh token");
   }
 });
 
@@ -273,7 +283,7 @@ const updateAccountDetails = Asynchandler(async (req, res) => {
 });
 
 const updateAvatar = Asynchandler(async (req, res) => {
-  const avatarLocalPath = req.file?.path[0];
+  const avatarLocalPath = req.file?.path;
 
   if (!avatarLocalPath) {
     throw new Apierror(404, "avatar path not found");
@@ -281,8 +291,8 @@ const updateAvatar = Asynchandler(async (req, res) => {
 
   const avatar = await cloudinaryUploader(avatarLocalPath);
 
-  if (!avatar.url) {
-    throw new Apierror(500, "Internal error while uploading avatar on cloud");
+  if (!avatar || !avatar.url) {
+    throw new Apierror(500, "error while uploading avatar on cloud");
   }
 
   const user = await User.findByIdAndUpdate(
@@ -300,7 +310,7 @@ const updateAvatar = Asynchandler(async (req, res) => {
 });
 
 const updateCoverImage = Asynchandler(async (req, res) => {
-  const coverImageLocalPath = req.file?.path[0];
+  const coverImageLocalPath = req.file?.path;
 
   if (!coverImageLocalPath) {
     throw new Apierror(404, "avatar path not found");
@@ -333,9 +343,13 @@ const updateCoverImage = Asynchandler(async (req, res) => {
 
 const userProfileDetails = Asynchandler(async (req, res) => {
   const { username } = req.params;
+  
+  const loggedInUserId = req.user?._id 
+        ? new mongoose.Types.ObjectId(req.user._id) 
+        : null;
 
   if (!username?.trim()) {
-    throw new Apierror(404, "user not found");
+    throw new Apierror(404, "username cannot be empty");
   }
 
   const Profle = await User.aggregate([
@@ -371,14 +385,14 @@ const userProfileDetails = Asynchandler(async (req, res) => {
         isSubscribed: {
           $cond: {
             if: {
-              $in: [req.user?._id, "$subscribers.subscriber"],
+              $in: [loggedInUserId, "$subscribers.subscriber"],
             },
             then: true,
             else: false,
           },
         },
         isOwner: {
-          $eq: ["$_id", req.user?._id],
+          $eq: ["$_id", loggedInUserId],
         },
       },
     },
@@ -403,15 +417,14 @@ const userProfileDetails = Asynchandler(async (req, res) => {
                 { $eq: [{ $type: "$fullname" }, "missing"] },
               ],
             },
-            then: "$username", 
-            else: "$fullname", 
+            then: "$username",
+            else: "$fullname",
           },
         },
 
         email: {
           $cond: ["$isOwner", "$email", "$$REMOVE"],
         },
-        
       },
     },
   ]);
@@ -426,43 +439,42 @@ const userProfileDetails = Asynchandler(async (req, res) => {
 });
 
 const completeOnboarding = Asynchandler(async (req, res) => {
-  
-    const { interests } = req.body; 
+  const { interests } = req.body;
 
-    if (!interests || !Array.isArray(interests) || interests.length === 0) {
-        throw new Apierror(400, "Please select at least one interest");
-    }
+  if (!interests || !Array.isArray(interests) || interests.length === 0) {
+    throw new Apierror(400, "Please select at least one interest");
+  }
 
-    const interestString = interests.join(" ");
+  const interestString = interests.join(" ");
 
-    const currentVector = await generateEmbedding(interestString);
+  const currentVector = await generateEmbedding(interestString);
 
-    if (!currentVector) {
-        throw new Apierror(500, "Failed to generate interest profile. Try again.");
-    }
+  if (!currentVector) {
+    throw new Apierror(500, "Failed to generate interest profile. Try again.");
+  }
 
-    const updatedUser = await User.findByIdAndUpdate(
-        req.user._id,
-        {
-            $set: {
-                userInterest: currentVector,
-                isNewUser: false,
-                // Best practice: Save the text tags too for filtering later
-                explicitPreferences: interests 
-            }
-        },
-        { new: true } 
-    );
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        userInterest: currentVector,
+        isNewUser: false,
+        // Best practice: Save the text tags too for filtering later
+        explicitPreferences: interests,
+      },
+    },
+    { new: true },
+  );
 
-    if (!updatedUser) {
-        throw new Apierror(404, "User profile not found");
-    }
+  if (!updatedUser) {
+    throw new Apierror(404, "User profile not found");
+  }
 
-    return res.status(200).json({
-        success: true,
-        message: "User preference and vector profile stored successfully",
-        data: { isNewUser: updatedUser.isNewUser }
-    });
+  return res.status(200).json({
+    success: true,
+    message: "User preference and vector profile stored successfully",
+    data: { isNewUser: updatedUser.isNewUser },
+  });
 });
 
 export {
@@ -477,4 +489,5 @@ export {
   updateCoverImage,
   userProfileDetails,
   generateAccessAndRefreshToken,
+  completeOnboarding,
 };
