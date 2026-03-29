@@ -2,7 +2,6 @@ import { InferenceClient } from "@huggingface/inference";
 import {Apierror} from "../utils/Apierror.js"
 const client = new InferenceClient(process.env.HF_TOKEN) ;
 
-
 const generateEmbedding = async (text)=>{
     
 if(!text){
@@ -12,7 +11,7 @@ if(!text){
 try {
   const output = await client.featureExtraction({
     model: "sentence-transformers/all-MiniLM-L6-v2", 
-      nputs: text,
+    inputs: text,
   });
 
   return Array.isArray(output) ? output.flat() : output;
