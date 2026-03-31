@@ -1,6 +1,5 @@
 import { User } from "../models/user.models";
 
-
 const alpha = 0.1;
 const userSyncVector = async (userId,postEmbedding) => {
     //we get userId from auth middleware in routes

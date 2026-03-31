@@ -438,6 +438,7 @@ const userProfileDetails = Asynchandler(async (req, res) => {
     .json(new Apiresponse(200, Profle[0], "user fetched successfully"));
 });
 
+//new user cold start
 const completeOnboarding = Asynchandler(async (req, res) => {
   const { interests } = req.body;
 
