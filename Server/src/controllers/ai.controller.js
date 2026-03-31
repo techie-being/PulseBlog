@@ -35,7 +35,7 @@ const generateAiSummary = Asynchandler(async (req, res) => {
 
       {
         role: "user",
-        content: `Draft Content: ${content}`,
+        content: `here is Draft Content that you have to summarize : ${content}`,
       },
     ],
     temperature: 0.7,
@@ -111,3 +111,115 @@ const assetGenerator = Asynchandler(async (req, res) => {
 });
 
 //run before create post
+const simplifyText = Asynchandler(async (req, res) => {
+  const { selectedText } = req.body;
+
+  if (!selectedText) {
+    throw new Apierror(400, "Text field is empty");
+  }
+
+  if (selectedText.length > 2000) {
+    throw new Apierror(400, "Text length should be less.");
+  }
+
+  const response = await client.chat.completions.create({
+    model: "gpt-4o",
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: 
+        `You are an expert teacher who excels at breaking down complex concepts. The user will provide a specific technical or dense paragraph from a blog post. 
+        Rewrite the core concept so simply that a beginner or a child could understand it. You must include a highly relatable, everyday analogy.
+        You MUST return a valid JSON object in this exact format:
+        {
+          "simplified_explanation": "Your clear, jargon-free explanation here.",
+          "analogy": "Think of it like..."
+        }`,
+      },
+      {
+        role:"user",
+        content:`here is the text content that you have to initalize ${selectedText}`,
+      }
+    ],
+    temperature:0.6,
+  });
+
+  const simplifiedText = JSON.parse(response.choices[0].message.content);
+
+  return res
+  .status(200)
+  .json(
+    new Apiresponse(
+      {
+        status:200,
+        data:simplifiedText,
+        message:"selected text simplified successfully",
+      }
+    )
+  )
+});
+
+const polishDraft = Asynchandler(async (req, res) => {
+  const { draftContent } = req.body;
+
+  if (!draftContent) {
+    throw new Apierror(400, "Draft content is required for polishing.");
+  }
+
+  if (draftContent.length > 30000) {
+    throw new Apierror(400, "Draft is too long for the AI polisher limit.");
+  }
+
+  const response = await client.chat.completions.create({
+    model: "gpt-4o", 
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content: `
+        You are a professional copyeditor. Read the provided blog draft and identify up to 3 sentences that are clunky, awkwardly phrased, grammatically incorrect, or hard to read. 
+        For each identified sentence, provide a polished, professional improvement that maintains the author's original meaning.
+
+        You MUST return a valid JSON object in this exact format:
+        {
+          "suggestions": [
+            {
+              "original_sentence": "The exact clunky sentence pulled from the text.",
+              "improved_sentence": "Your rewritten, polished version.",
+              "explanation": "A brief, 1-sentence reason for the change."
+            }
+          ]
+        }
+        `
+      },
+      {
+        role: "user",
+        content: `Here is the draft to polish: ${draftContent}`
+      }
+    ],
+    temperature: 0.3,
+  });
+
+  const polishedData = JSON.parse(response.choices[0].message.content);
+
+  return res
+  .status(200)
+  .json(
+    new Apiresponse(
+      {
+        status:200,
+        data:polishedData,
+        message:"selected text simplified successfully",
+      }
+    )
+  );
+  
+});
+
+export { 
+  polishDraft,
+  simplifyText,
+  assetGenerator,
+  generateAiSummary,
+};

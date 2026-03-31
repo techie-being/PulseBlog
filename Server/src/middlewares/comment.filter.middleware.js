@@ -2,6 +2,7 @@ import { Asynchandler } from "../utils/Asynchandler.js";
 import { Apierror } from "../utils/Apierror.js";
 import { client } from "../Config/ai.client.js";
 
+//run before create post
 const blockToxicity = Asynchandler(async (req, res, next) => {
   const { commentText } = req.body;
 
