@@ -4,6 +4,8 @@ import { Apiresponse } from "../utils/Apiresponse.js";
 import {User} from "../models/user.models.js"
 import {Post} from "../models/post.models.js"
 
+//when we write a route for this we use commentfiltermiddlewarw before 
+// this controller
 const userComment = Asynchandler(async (req,res) => {
     const {postId} = req.params;
 
