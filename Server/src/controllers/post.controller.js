@@ -125,17 +125,29 @@ const getAllPost = Asynchandler(async (req, res) => {
 //it converts title in to slug then find post and return it
 // using search
 const getPostById = Asynchandler(async (req, res) => {
-  const { slug } = req.params;
+    const { postId } = req.params; // Better to use :postId in route
 
-  const post = await Post
-    .findOne({ slug, isPublished: true })
-    .populate("owner", "username avatar", "views");
+    // 1. Fetch the actual post by ID (Direct & Fast)
+    const post = await Post.findById(postId).populate("owner", "username avatar");
+    if (!post) throw new Apierror(404, "Post not found");
 
-  if (!post) {
-    throw new Apierror(404, "post does not found");
-  }
+    // 2. OPTIONAL: Use this post's vector to find 3 related posts
+    const relatedPosts = await Post.aggregate([
+        {
+            $vectorSearch: {
+                index: "vector_index",
+                path: "contentVector",
+                queryVector: post.contentVector, // Use current post's vector!
+                numCandidates: 10,
+                limit: 4
+            }
+        },
+        { $match: { _id: { $ne: post._id } } } // Exclude the current post itself
+    ]);
 
-  return res.status(200).json(200, post, "PostById fetched successfully");
+    return res.status(200).json(
+        new Apiresponse(200, { post, relatedPosts }, "Post and related content fetched")
+    );
 });
 
 const deletePost = Asynchandler(async (req, res) => {
