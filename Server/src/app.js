@@ -8,6 +8,15 @@ import express from 'express';
 
 const app = express()
 
+//global multer error handler
+
+app.use((err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+        return res.status(400).json({ message: `Multer error: ${err.message}` });
+    }
+    res.status(500).json({ message: err.message });
+});
+
 // Essential for Rate Limiting to work on Render/Vercel
 app.set('trust proxy', 1);
 
@@ -59,12 +68,14 @@ app.use(express.urlencoded({extended:true,limit:"16kb"}));
 //configure server to check public folder before complex db query
 app.use(express.static("public"));
 
-//day1 till here
+//Router initialization
 
 import {router as userRouter} from "./routes/user.routes.js"
+import {router as postRouter} from "./routes/user.routes.js"
 
 //user routes
 app.use("/api/v1/users",standardRateLimit,userRouter)
- 
 
+//post routes
+app.use("/api/v1/posts",standardRateLimit,postRouter)
 export {app}
