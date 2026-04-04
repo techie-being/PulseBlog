@@ -3,6 +3,7 @@ import { Apierror } from "../utils/Apierror.jsr";
 import { Apiresponse } from "../utils/Apiresponse.js";
 import {User} from "../models/user.models.js"
 import {Post} from "../models/post.models.js"
+import {paginateQuery} from "../utils/pagination.js"
 
 //when we write a route for this we use commentfiltermiddlewarw before 
 // this controller
@@ -134,29 +135,30 @@ const updateComment = Asynchandler(async (req,res) => {
     )
 })
 
-const getPostComments = Asynchandler(async (req,res) => {
-    const {postId} = req.params;
-    
-    const getAllComments = await Comment.find({postId})
-    .sort({createdAt:-1})
-    .populate(
-        "commentUserId", 
-        "username avatar"
-    )
+const getPostComments = Asynchandler(async (req, res) => {
+    const { postId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
 
-    return res
-    .status(200)
-    .json(
-        new Apiresponse(
-            
-            {
-                status:200,
-                data:getAllComments,
-                message:"all comments are fetched successfully",
-            }
-        )
-    )
-})
+    const result = await paginateQuery(
+        Comment,
+        { postId },
+        page,
+        limit,
+        { 
+            populate: { path: "commentUserId", select: "username avatar" },
+            sort: { createdAt: -1 } 
+        }
+    );
+
+    return res.status(200).json(
+        new Apiresponse({
+            status: 200,
+            data: result,
+            message: "Comments fetched successfully",
+        })
+    );
+});
+
 export {
     userComment,
     deleteComment,
