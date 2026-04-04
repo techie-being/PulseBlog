@@ -4,6 +4,7 @@ import { Apiresponse } from "../utils/Asynchandler.js";
 import { Like } from "../models/likes.models.js";
 import { User } from "../models/user.models.js";
 import { Post } from "../models/post.models.js";
+import {paginateQuery} from "../utils/pagination.js"
 
 const likedPost = Asynchandler(async (req, res) => {
   const { postId } = req.params;
@@ -43,20 +44,24 @@ const likedPost = Asynchandler(async (req, res) => {
 });
 
 const getLikedList = Asynchandler(async (req, res) => {
-  const { postId } = req.params;
+    const { postId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
 
-  const post = await Like.find({ postId }).populate(
-    "likedBy",
-    "username avatar",
-  );
+    const result = await paginateQuery(
+        Like, 
+        { postId }, 
+        page, 
+        limit, 
+        { populate: { path: "likedBy", select: "username avatar" } }
+    );
 
-  return res.status(200).json(
-    new Apiresponse({
-      status: 200,
-      data: { post },
-      message: "post liked users fetched successfully",
-    }),
-  );
+    return res.status(200).json(
+        new Apiresponse({
+            status: 200,
+            data: result, 
+            message: "Post liked users fetched successfully",
+        })
+    );
 });
 
 const unlikePost = Asynchandler(async (req, res) => {
