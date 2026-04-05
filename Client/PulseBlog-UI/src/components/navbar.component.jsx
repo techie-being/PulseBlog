@@ -42,10 +42,9 @@ const Navbar = () => {
                 >
                     <i className="fi fi-br-search text-xl"></i>
                 </button>
-                <Link to="/write" className="hidden md:flex gap-2 link">
-                    <i className="fi fi-rr-edit"></i>
-                    <p>Write</p>
-                </Link>
+                    <Link to="/write" className="md:hidden w-10 h-10 rounded-full bg-grey flex items-center justify-center">
+                        <i className="fi fi-rr-edit text-xl"></i>
+                    </Link>
                 <Link className="btn-dark py-2" to="/signin">Sign In</Link>
                 <Link className="btn-light py-2 hidden md:block" to="/signup">Sign Up</Link>
 
