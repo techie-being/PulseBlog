@@ -1,5 +1,5 @@
 import mongoose,{Schema} from "mongoose";
-import { User } from "./user.models";
+import { User } from "./user.models.js";
 import { nanoid } from "nanoid";
 import slugify from "slugify";
 
@@ -103,17 +103,19 @@ postSchema.post("findOneAndDelete", async function (doc, next) {
     }
 });
 
-postSchema.pre('save', function (next) {
+//generate auto matic slug
+postSchema.pre('save', async function (next) {
   if (this.isModified('title')) {
-    this.slug = slugify(this.title, { 
+    const baseSlug = slugify(this.title, { 
       lower: true,   
       strict: true,  
       trim: true     
     });
     this.slug = `${baseSlug}-${nanoid(6)}`;
   }
-  next();
+  
 });
+
 //for search bar using title
 postSchema.index({ title: 'text', content: 'text' });
 export const Post = mongoose.model("Post",postSchema)

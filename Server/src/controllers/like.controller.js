@@ -1,6 +1,6 @@
-import { Asynchandler } from "../utils/Asynchandler";
+import { Asynchandler } from "../utils/Asynchandler.js";
 import { Apierror } from "../utils/Apierror.js";
-import { Apiresponse } from "../utils/Asynchandler.js";
+import { Apiresponse } from "../utils/Apiresponse.js";
 import { Like } from "../models/likes.models.js";
 import { User } from "../models/user.models.js";
 import { Post } from "../models/post.models.js";
