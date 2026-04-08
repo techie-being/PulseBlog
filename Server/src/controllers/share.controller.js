@@ -3,35 +3,22 @@ import {Apierror} from "../utils/Apierror.js"
 import { Apiresponse } from "../utils/Apiresponse.js";
 import { Post } from "../models/post.models.js";
 
-const shareCount = Asynchandler(async (req,res) => {
-    const {postId} = req.params;
-
-    const updatePost = await Post.findByIdAndUpdate(
+const sharePost = Asynchandler(async (req, res) => {
+    const { postId } = req.params;
+    
+    // Create the record. The middleware in the model handles the count!
+    const newShare = await Share.create({
         postId,
-        {
-            $inc:{
-                shareCount:1,
-            }
-        },
-        {
-            new:true,
-            runValidators: false,
-        }
+        shareUserId: req.user._id
+    });
+
+    return res.status(201).json(
+        new Apiresponse({
+            status: 201,
+            data: newShare,
+            message: "Post shared and count updated"
+        })
     );
+});
 
-    if(!updatePost){
-        throw new Apierror(404,"post does not exist");
-    }
-
-    return res
-    .status(200)
-    .json(
-        {
-            status:200,
-            data:updatePost.shareCount,
-            message:"sharecount updated successfully"
-        }
-    )
-})
-
-export {shareCount}
+export {sharePost}

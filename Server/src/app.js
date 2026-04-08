@@ -71,11 +71,31 @@ app.use(express.static("public"));
 //Router initialization
 
 import {router as userRouter} from "./routes/user.routes.js"
-import {router as postRouter} from "./routes/user.routes.js"
+import {router as postRouter} from "./routes/post.routes.js"
+import {router as subcriptionRouter} from "./routes/subscribe.routes.js"
+import {router as likeRouter} from "./routes/like.routes.js"
+import {router as commentRouter} from "./routes/comment.routes.js"
+import {router as shareRouter} from "./routes/share.routes.js"
+import {router as aiRouter} from "./routes/ai.routes.js"
 
 //user routes
 app.use("/api/v1/users",standardRateLimit,userRouter)
 
 //post routes
 app.use("/api/v1/posts",standardRateLimit,postRouter)
+
+//Subscription routes
+
+app.use("/api/v1/subcription",standardRateLimit,subcriptionRouter)
+
+//like routes
+
+app.use("/api/v1/like",standardRateLimit,likeRouter)
+
+app.use("/api/v1/comment",commentRouter)
+
+app.use("/api/v1/share",shareRouter)
+
+app.use("/api/v1/like",aiRateLimit,aiRouter)
+
 export {app}

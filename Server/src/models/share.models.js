@@ -5,7 +5,7 @@ const shareSchema = new Schema(
     {
         shareUserId:{
             type:Schema.Types.ObjectId,
-            ref:"User"
+            ref:"User",
         },
         postId:{
             type:Schema.Types.ObjectId,
@@ -15,5 +15,9 @@ const shareSchema = new Schema(
     },
     {timestamps:true}
 )
+
+shareSchema.post("save", async function (doc) {
+    await Post.findByIdAndUpdate(doc.postId, { $inc: { shareCount: 1 } });
+});
 
 export const Share = mongoose.model("Share",shareSchema)

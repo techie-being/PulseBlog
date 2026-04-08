@@ -12,7 +12,7 @@ import {
 } from "../controllers/post.controller.js"; // Adjust path as needed
 import { verifyJwt } from "../middlewares/auth.middleware.js";
 import { getOptionalUser } from "../middlewares/optionalAuth.middleware.js";
-import { upload } from "../middlewares/multer.middleware.js";
+import { upload } from "../middlewares/multer.middlewares.js";
 
 const router = Router();
 
@@ -46,15 +46,12 @@ router.route("/delete-post/:postId").delete(verifyJwt, deletePost);
 
 router.route("/update-post/:postId").patch(
     verifyJwt,
-    upload.fields([
-        {
-            name: "mediaImage",
-            maxCount: 1 // Usually 1 for updates, or change to 5 if needed
-        }
-    ]),
+    upload.single(
+        "mediaImage"
+    ),
     updatePost
 );
 
 router.route("/post-toggle-status/:postId").patch(verifyJwt, togglePostStatus);
 
-export default router;
+export {router};
