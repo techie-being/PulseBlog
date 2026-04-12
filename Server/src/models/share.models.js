@@ -1,5 +1,5 @@
 import mongoose,{Schema} from "mongoose";
-import { User } from "./user.models.js";
+import { Post } from "./post.models.js";
 
 const shareSchema = new Schema(
     {

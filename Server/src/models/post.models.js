@@ -59,8 +59,8 @@ const postSchema = new Schema(
 
         commentCount:{
             type:Number,
-            default:null,
-        },
+            default:0,
+        }, 
 
         shareCount:{
             type:Number,

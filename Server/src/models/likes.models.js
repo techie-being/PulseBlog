@@ -6,17 +6,20 @@ const likeSchema = new Schema(
         likedBy:{
             type:Schema.Types.ObjectId,
             ref:"User",
+            required:true,
+            
             
         },
         postId:{
             type:Schema.Types.ObjectId,
             ref:"post",
+            required:true,
         }
 
     },
     {timestamps:true}
 )
-.index(
+likeSchema.index(
     {
        postId:1,
        likerUserId:1,
