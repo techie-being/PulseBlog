@@ -11,10 +11,10 @@ const toggleSubscription = Asynchandler(async (req,res) => {
     const userId = req.user?._id;
 
     if(!channelID){
-        throw new Apierror(404,"channel does nit exist");
+        throw new Apierror(404,"channel does not exist");
     }
 
-    if(subscriberId.toString() == channelID.toString()){
+    if(userId.toString() == channelID.toString()){
         throw new Apierror(401,"you cannot follow yourself")
     }
 

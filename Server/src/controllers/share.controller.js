@@ -1,7 +1,7 @@
 import { Asynchandler } from "../utils/Asynchandler.js";
 import {Apierror} from "../utils/Apierror.js"
 import { Apiresponse } from "../utils/Apiresponse.js";
-import { Post } from "../models/post.models.js";
+import { Share} from "../models/share.models.js";
 
 const sharePost = Asynchandler(async (req, res) => {
     const { postId } = req.params;

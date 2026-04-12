@@ -3,6 +3,7 @@ import { Apierror } from "../utils/Apierror.js";
 import { Apiresponse } from "../utils/Apiresponse.js";
 import {User} from "../models/user.models.js"
 import {Post} from "../models/post.models.js"
+import {Comment} from "../models/comment.models.js"
 import {paginateQuery} from "../utils/pagination.js"
 
 //when we write a route for this we use commentfiltermiddlewarw before 
@@ -58,7 +59,7 @@ const deleteComment = Asynchandler(async (req,res) => {
 
     const userId = req.user._id;
 
-    const existingComment = await Comment.findById({commentId});
+    const existingComment = await Comment.findById(commentId);
     
     if(!existingComment){
         throw new Apierror(404,"comment does not exist");
