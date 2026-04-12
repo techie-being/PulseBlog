@@ -1,9 +1,8 @@
-import { OpenAI } from "openai";
 import { Asynchandler } from "../utils/Asynchandler.js";
 import { Apierror } from "../utils/Apierror.js";
 import { Apiresponse } from "../utils/Apiresponse.js";
 import { client } from "../Config/ai.client.js";
-
+import { Post } from "../models/post.models.js";
 //run before create post
 const generateAiSummary = Asynchandler(async (req, res) => {
   const { content } = req.body;
@@ -18,7 +17,7 @@ const generateAiSummary = Asynchandler(async (req, res) => {
 
   const response = await client.chat.completions.create({
     model: "gpt-4o",
-    response_format: { tyre: "json_object" },
+    response_format: { type: "json_object" },
     messages: [
       {
         role: "system",
@@ -54,7 +53,12 @@ const generateAiSummary = Asynchandler(async (req, res) => {
 
 //run after create post
 const assetGenerator = Asynchandler(async (req, res) => {
-  const { content } = req.body;
+  const { postId } = req.params;
+
+  const post = await Post.findById(postId);
+  if (!post) throw new Apierror(404, "Post not found");
+
+  const content = post.content;
 
   if (!content) {
     throw new Apierror(400, "Content is required");
