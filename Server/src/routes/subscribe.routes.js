@@ -5,6 +5,6 @@ import { toggleSubscription } from "../controllers/subscription.controller.js";
 const router = Router();
 
 //to get user subscribe status
-router.route("/subscribe-status").patch(verifyJwt,toggleSubscription);
+router.route("/subscribe-status/:channelID").patch(verifyJwt,toggleSubscription);
 
 export {router}
