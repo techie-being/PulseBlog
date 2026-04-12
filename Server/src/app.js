@@ -86,16 +86,19 @@ app.use("/api/v1/posts",standardRateLimit,postRouter)
 
 //Subscription routes
 
-app.use("/api/v1/subcription",standardRateLimit,subcriptionRouter)
+app.use("/api/v1/subscription",standardRateLimit,subcriptionRouter)
 
 //like routes
 
 app.use("/api/v1/like",standardRateLimit,likeRouter)
 
+//comment routes
 app.use("/api/v1/comment",commentRouter)
 
+//share routes
 app.use("/api/v1/share",shareRouter)
 
-app.use("/api/v1/like",aiRateLimit,aiRouter)
+//AI routes
+app.use("/api/v1/Ai",aiRateLimit,aiRouter)
 
 export {app}

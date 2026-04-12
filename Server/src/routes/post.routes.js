@@ -32,7 +32,7 @@ router.route("/create-post").post(
 // --- 2. DISCOVERY & LISTING ---
 // Public or Optional User routes
 router.route("/get-all-posts").get(getOptionalUser, getAllPost);
-router.route("/search-post").get(searchPostsDiscovery);
+router.route("/search-post").get(verifyJwt,searchPostsDiscovery);
 router.route("/get-post-by-author/:userId").get(getOptionalUser, getPostByAuthor);
 
 // --- 3. SPECIFIC POST ACCESS ---
