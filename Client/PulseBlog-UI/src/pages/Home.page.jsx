@@ -11,20 +11,25 @@ const HomePage = () => {
     const [hasMore, setHasMore]   = useState(false);
     const [fetching, setFetching] = useState(false);
 
-    const fetchPosts = async (pageNum = 1) => {
-        try {
-            pageNum === 1 ? setLoading(true) : setFetching(true);
-            const res = await axiosInstance.get(`/posts/get-all-posts?page=${pageNum}&limit=10`);
-            const { data, pagination } = res.data.data;
-            setPosts((prev) => pageNum === 1 ? data : [...prev, ...data]);
-            setHasMore(pagination.hasNextPage);
-        } catch {
-            toast.error("Could not load posts. Is the server running?");
-        } finally {
-            setLoading(false);
-            setFetching(false);
-        }
-    };
+const fetchPosts = async (pageNum = 1) => {
+  try {
+    pageNum === 1 ? setLoading(true) : setFetching(true);
+    const res = await axiosInstance.get(`/posts/get-all-posts?page=${pageNum}&limit=10`);
+    
+    // FIX: was res.data.data — needs one more level
+    const responseData = res.data.data || res.data.result; // handles both response shapes
+    const posts = responseData?.data || [];
+    const pagination = responseData?.pagination || {};
+    
+    setPosts((prev) => pageNum === 1 ? posts : [...prev, ...posts]);
+    setHasMore(pagination.hasNextPage || false);
+  } catch {
+    toast.error("Could not load posts. Is the server running?");
+  } finally {
+    setLoading(false);
+    setFetching(false);
+  }
+};
 
     useEffect(() => { fetchPosts(1); }, []);
 
