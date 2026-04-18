@@ -1,6 +1,9 @@
 import { Router } from "express";
 import {
   registerUser,
+  setupAccount,
+  forgotPassword,
+  resetPassword,
   userLogin,
   userLogout,
   getCurrentUser,
@@ -23,20 +26,19 @@ import passport from "passport";
 const router = Router();
 
 //first User-Routes
-router.route("/register").post(
-  upload.fields([
-    {
-      name: "avatar",
-      maxCount: 1,
-    },
-    {
-      name: "coverImage",
-      maxCount: 1,
-    },
-  ]),
-  registerUser,
-);
+router.route("/register").post(registerUser);
 
+// Step 2: Media upload (Requires being logged in)
+router.route("/setup-account").patch(
+  verifyJwt, 
+  upload.fields([
+    { name: "avatar", maxCount: 1 },
+    { name: "coverImage", maxCount: 1 }
+  ]),
+  setupAccount
+);
+router.route("/forgot-password").post(forgotPassword);
+router.route("/reset-password").patch(resetPassword);
 router.route("/Login").post(userLogin);
 router.route("/Logout").post(verifyJwt, userLogout);
 router.route("/refresh-token").post(refreshToken);
