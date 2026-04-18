@@ -65,20 +65,30 @@ const userSchema = new Schema(
 
         avatar:{
             type:String,
-            required:true,
+            default:"",
         },
 
         coverImage:{
-            type:String
+            type:String,
+            default:"",
         },
+
+        // Add these to your User Schema
+        forgotPasswordToken: String,
+        forgotPasswordTokenExpiry: Date,
         
         refreshToken:{
             type:String,
         },
 
+        isProfileComplete:{
+            type: Boolean,
+            default: false,
+        },
+
         tokenVersion:{
             type:Number,
-            default:0
+            default:0,
         },
 
         postCount:{
