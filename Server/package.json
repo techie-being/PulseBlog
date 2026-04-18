@@ -25,6 +25,7 @@
     "mongoose-aggregate-paginate-v2": "^1.1.4",
     "multer": "^2.1.1",
     "nanoid": "^5.1.7",
+    "nodemailer": "^8.0.5",
     "nodemon": "^3.1.14",
     "openai": "^6.33.0",
     "passport": "^0.7.0",
