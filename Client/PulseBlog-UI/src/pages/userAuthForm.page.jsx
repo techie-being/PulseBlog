@@ -8,8 +8,8 @@ import toast, { Toaster } from "react-hot-toast";
 import googleIcon from "../imgs/google.png";
 
 const UserAuthForm = ({ type }) => {
-    const dispatch   = useDispatch();
-    const navigate   = useNavigate();
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { loading, error } = useSelector((state) => state.auth);
 
     const [formData, setFormData] = useState({
@@ -36,9 +36,11 @@ const UserAuthForm = ({ type }) => {
 
         try {
             const endpoint = type === "sign-in" ? "/users/Login" : "/users/register";
+            console.log("Base URL:", axiosInstance.defaults.baseURL);
+            console.log("Full Endpoint:", endpoint);
             const res = await axiosInstance.post(endpoint, formData);
             
-            const userData = res.data.data?.user || res.data.data;
+            const userData = res.data.user || res.data;
             
             dispatch(loginSuccess(userData));
             toast.success(type === "sign-in" ? "Welcome back!" : "Account created!");
