@@ -6,6 +6,8 @@ import { cloudinaryUploader } from "../utils/Cloudinary.js";
 import { generateEmbedding } from "../utils/Embedding.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
+import crypto from "crypto";
+import sendEmail from "../utils/sendEmail.js";
 
 const options = {
   httpOnly: true,
@@ -30,65 +32,31 @@ const generateAccessAndRefreshToken = async (userId) => {
 };
 
 const registerUser = Asynchandler(async (req, res) => {
+  // 1. Get data from request body
   const { username, email, password } = req.body;
 
-  // 1. Validate inputs
+  // 2. Validate inputs
   if ([username, email, password].some((field) => field?.trim() === "")) {
-    throw new Apierror(400, "All fields are required"); // Changed to 400 (Bad Request)
+    throw new Apierror(400, "All fields are required");
   }
 
-  // 2. Check if user already exists
+  // 3. Check if user already exists
   const userExisted = await User.findOne({
     $or: [{ username }, { email }],
   });
 
   if (userExisted) {
-    throw new Apierror(409, "User with email or username already exists"); // Changed to 409 (Conflict)
+    throw new Apierror(409, "User with email or username already exists");
   }
 
-  // 3. Handle Avatar (Required)
-  const avatarFilepath = req.files?.avatar?.[0]?.path; // Safely chain the array index
-
-  if (!avatarFilepath) {
-    throw new Apierror(400, "Avatar file is required");
-  }
-
-  const avatar = await cloudinaryUploader(avatarFilepath);
-
-  if (!avatar) {
-    throw new Apierror(500, "Avatar failed to upload to Cloudinary");
-  }
-
-  // 4. Handle Cover Image (Optional)
-  let coverImageFilePath;
-  if (
-    req.files &&
-    Array.isArray(req.files.coverImage) &&
-    req.files.coverImage.length > 0
-  ) {
-    coverImageFilePath = req.files.coverImage[0].path;
-  }
-
-  let coverImage = null;
-  if (coverImageFilePath) {
-    // FIX: Pass the correct file path here!
-    coverImage = await cloudinaryUploader(coverImageFilePath);
-
-    if (!coverImage) {
-      throw new Apierror(500, "Cover image failed to upload to Cloudinary");
-    }
-  }
-
-  // 5. Create the user in MongoDB
+  // 4. Create the user (Images will be handled in account setup later)
   const user = await User.create({
     username: username.toLowerCase(),
     email,
     password,
-    coverImage: coverImage?.url || "",
-    avatar: avatar.url,
   });
 
-  // 6. Fetch the user back to confirm creation and remove sensitive data
+  // 5. Fetch user without sensitive fields
   const createdUser = await User.findById(user._id).select(
     "-password -refreshToken",
   );
@@ -97,20 +65,65 @@ const registerUser = Asynchandler(async (req, res) => {
     throw new Apierror(500, "Something went wrong while registering the user");
   }
 
-  // 7. Send success response
+  // 6. Send success response
   return res
     .status(201)
     .json(new Apiresponse(201, "User created successfully", createdUser));
 });
 
-const userLogin = Asynchandler(async (req, res) => {
-  const { username, password } = req.body;
+const setupAccount = Asynchandler(async (req, res) => {
+  // 1. Retrieve files from request
+  const fullname = req.body
+  const avatarLocalPath = req.files?.avatar?.[0]?.path;
+  const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
-  if ([username, password].some((field) => field?.trim() === "")) {
+  // 2. Validation: Avatar is usually considered mandatory for a 'setup'
+  if (!avatarLocalPath) {
+    throw new Apierror(400, "Avatar file is required to complete setup");
+  }
+
+  // 3. Upload to Cloudinary
+  const avatar = await cloudinaryUploader(avatarLocalPath);
+  
+  if (!avatar) {
+    throw new Apierror(500, "Error while uploading avatar");
+  }
+
+  // Optional: Upload cover image if it exists
+  let coverImage;
+  if (coverImageLocalPath) {
+    coverImage = await cloudinaryUploader(coverImageLocalPath);
+  }
+
+  // 4. Update the User in MongoDB
+  // We use findByIdAndUpdate because the user already exists from the register step
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        fullname:fullname,
+        avatar: avatar.url,
+        coverImage: coverImage?.url || "",
+        isProfileComplete: true ,
+      },
+    },
+    { new: true } // Returns the updated document instead of the old one
+  ).select("-password -refreshToken");
+
+  // 5. Return updated user
+  return res
+    .status(200)
+    .json(new Apiresponse(200, "Account setup completed successfully", user));
+});
+
+const userLogin = Asynchandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  if ([email, password].some((field) => field?.trim() === "")) {
     throw new Apierror(400, "All fields are mandatory");
   }
 
-  const user = await User.findOne({ username });
+  const user = await User.findOne({ email });
 
   if (!user) {
     throw new Apierror(404, "User does not exist");
@@ -145,6 +158,89 @@ const userLogin = Asynchandler(async (req, res) => {
         "User LoggedIn successfully",
       ),
     );
+});
+
+const forgotPassword = Asynchandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new Apierror(400, "Please provide a registered email");
+  }
+
+  // 1. Find user
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new Apierror(404, "No account found with that email");
+  }
+
+  // 2. Create Reset Token
+  const resetToken = crypto.randomBytes(20).toString("hex");
+
+  // 3. Hash token and save to DB
+  user.forgotPasswordToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+    
+  user.forgotPasswordTokenExpiry = Date.now() + 15 * 60 * 1000; // 15 Mins
+
+  await user.save({ validateBeforeSave: false });
+
+  // 4. Send Email
+  const resetUrl = `${req.protocol}://${req.get("host")}/api/v1/users/reset-password/${resetToken}`;
+  const message = `You requested a password reset. Click the link to reset your password: \n\n ${resetUrl} \n\n If you didn't request this, please ignore this email.`;
+
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "Password Reset Request",
+      message,
+    });
+
+    return res
+      .status(200)
+      .json(new Apiresponse(200, {}, "Reset link sent to email"));
+
+  } catch (error) {
+    // If email fails, clean up the fields in DB
+    user.forgotPasswordToken = undefined;
+    user.forgotPasswordTokenExpiry = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    throw new Apierror(500, "Email could not be sent. Try again later.");
+  }
+});
+
+const resetPassword = Asynchandler(async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  // 1. Hash the incoming token to compare with DB
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
+
+  // 2. Find user with valid token and check expiry
+  const user = await User.findOne({
+    forgotPasswordToken: hashedToken,
+    forgotPasswordTokenExpiry: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    throw new Apierror(400, "Token is invalid or has expired");
+  }
+
+  // 3. Set new password and clear token fields
+  user.password = password;
+  user.forgotPasswordToken = undefined;
+  user.forgotPasswordTokenExpiry = undefined;
+
+  await user.save();
+
+  return res
+    .status(200)
+    .json(new Apiresponse(200, {}, "Password reset successfully! Login now."));
 });
 
 const userLogout = Asynchandler(async (req, res) => {
@@ -480,7 +576,10 @@ const completeOnboarding = Asynchandler(async (req, res) => {
 
 export {
   registerUser,
+  setupAccount,
   userLogin,
+  forgotPassword,
+  resetPassword,
   userLogout,
   getCurrentUser,
   refreshToken,
