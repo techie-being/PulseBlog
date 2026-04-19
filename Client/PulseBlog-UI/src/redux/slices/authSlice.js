@@ -1,10 +1,13 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+// 1. Safely check for existing user in localStorage on initial load
+const storedUser = JSON.parse(localStorage.getItem("user")) || null;
+
 const authSlice = createSlice({
     name: "auth",
     initialState: {
-        user: null,
-        isLoggedIn: false,
+        user: storedUser,
+        isLoggedIn: !!storedUser, // True if user exists
         loading: false,
         error: null,
     },
@@ -18,6 +21,8 @@ const authSlice = createSlice({
             state.isLoggedIn = true;
             state.loading = false;
             state.error = null;
+            // 2. Save user to localStorage
+            localStorage.setItem("user", JSON.stringify(action.payload));
         },
         loginFailure: (state, action) => {
             state.loading = false;
@@ -30,9 +35,13 @@ const authSlice = createSlice({
             state.isLoggedIn = false;
             state.loading = false;
             state.error = null;
+            // 3. Clear from localStorage
+            localStorage.removeItem("user");
         },
         updateUser: (state, action) => {
             state.user = { ...state.user, ...action.payload };
+            // Update localStorage with new user data
+            localStorage.setItem("user", JSON.stringify(state.user));
         },
     },
 });

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { loginStart, loginSuccess, loginFailure } from "../redux/slices/authSlice";
 import InputBox from "../components/input.component";
@@ -10,7 +10,8 @@ import googleIcon from "../imgs/google.png";
 const UserAuthForm = ({ type }) => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { loading, error } = useSelector((state) => state.auth);
+    
+    const { loading, error, isLoggedIn } = useSelector((state) => state.auth);
 
     const [formData, setFormData] = useState({
         username: "",
@@ -18,37 +19,57 @@ const UserAuthForm = ({ type }) => {
         password: "",
     });
 
+    if (isLoggedIn) {
+        return <Navigate to="/" replace />;
+    }
+
     const handleChange = (e) => {
+        // Clear any previous Redux errors when the user starts typing again
+        if (error) dispatch(loginFailure(null)); 
+        
         setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // 1. Basic Field Validation using Redux
         if (!formData.email || !formData.password) {
-            return toast.error("Email and password are required");
+            return dispatch(loginFailure("Email and password are required."));
         }
         if (type === "sign-up" && !formData.username) {
-            return toast.error("Username is required");
+            return dispatch(loginFailure("Username is required."));
         }
 
+        // 2. Strict Password Validation (ONLY for Sign-Up) using Regex
+        if (type === "sign-up") {
+            const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+            
+            if (!passwordRegex.test(formData.password)) {
+                return dispatch(loginFailure("Password must be at least 8 characters long and include an uppercase letter, a number, and a special character."));
+            }
+        }
+
+        // If all checks pass, start the API call
         dispatch(loginStart());
 
         try {
             const endpoint = type === "sign-in" ? "/users/Login" : "/users/register";
-            console.log("Base URL:", axiosInstance.defaults.baseURL);
-            console.log("Full Endpoint:", endpoint);
             const res = await axiosInstance.post(endpoint, formData);
             
-            const userData = res.data.user || res.data;
+            const userData = res.data.data?.user || res.data.data;
             
             dispatch(loginSuccess(userData));
+
+            const isNewUser = userData?.isNewUser ?? true;
+            
+            // We keep the toast here just for the final success celebration
             toast.success(type === "sign-in" ? "Welcome back!" : "Account created!");
-            navigate("/");
+            navigate(isNewUser && type === "sign-up" ? "/onboarding" : "/");
+            
         } catch (err) {
             const message = err?.response?.data?.message || "Something went wrong";
             dispatch(loginFailure(message));
-            toast.error(message);
         }
     };
 
@@ -93,8 +114,11 @@ const UserAuthForm = ({ type }) => {
                     onChange={handleChange}
                 />
 
+                {/* Redux Error Display Area */}
                 {error && (
-                    <p className="text-red-500 text-sm mb-4 text-center">{error}</p>
+                    <p className="text-red-500 text-sm mb-4 text-center font-medium bg-red-50 p-2 rounded-md">
+                        {error}
+                    </p>
                 )}
 
                 <button
