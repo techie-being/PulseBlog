@@ -5,6 +5,7 @@ import cors from "cors";
 import helmet from 'helmet';
 import {rateLimit} from "express-rate-limit"
 import express from 'express';
+import "./config/Passport.js";
 
 const app = express()
 

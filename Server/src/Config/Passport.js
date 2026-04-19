@@ -1,51 +1,41 @@
 import passport from "passport";
-import { Strategy as googleStrategy } from "passport-google-oauth20";
-import {User} from "../models/user.models.js";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { User } from "../models/user.models.js";
 
 passport.use(
-    new googleStrategy(
-        {
-            clientID:process.env.GOOGLE_AUTH_CLIENT_ID,
-            clientSecret:process.env.GOOGLE_AUTH_CLIENT_SECRET,
-            callbackURL:process.env.GOOGLE_CALLBACK_URL
-        },
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_AUTH_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_AUTH_CLIENT_SECRET,
+      callbackURL: process.env.GOOGLE_CALLBACK_URL,
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails[0].value;
+        
+        // Check if user already exists
+        let user = await User.findOne({ email });
 
-        //this is callback runs immediately after google send user back to App.
-        async (accessToken,refreshToken,profile,done) => {
-            console.log("data sent by the google auth",profile);
-
-            try {
-                const googleId = profile.id;
-                const email = profile.emails[0].value;
-                const name = profile.displayName;
-                const avatar = profile.photos[0].value;
-
-                const user = await User.findOne({email:email});
-                 
-                //if user found
-                if(user){
-                    return done(null,user)
-                }
-
-                //user not found
-                else{
-                    await User.create(
-                        {
-                            fullname:name,
-                            email:email,
-                            avatar:avatar,
-                            provider:'google',
-                            providerId:googleId,
-                        }
-                    )
-                    return done(null,user)
-                }
-            } 
-            
-            catch (error) {
-                console.log("something went wrong while using google auth",error);
-                return done(error,null);
-            }
+        if (!user) {
+          // Create new user if they don't exist
+          user = await User.create({
+            fullname: profile.displayName,
+            email: email,
+            avatar: profile.photos[0].value,
+            provider: "google",
+            providerId: profile.id,
+            // Simple username generator
+            username: email.split("@")[0] + Math.floor(Math.random() * 1000),
+          });
         }
-    )
-)
+
+        // Passes the user object to the next stage (the route handler)
+        return done(null, user);
+      } catch (error) {
+        return done(error, null);
+      }
+    }
+  )
+);
+
+export default passport;

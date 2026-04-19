@@ -7,7 +7,7 @@ import { generateEmbedding } from "../utils/Embedding.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import crypto from "crypto";
-import sendEmail from "../utils/sendEmail.js";
+import {sendEmail} from "../utils/sendEmail.js";
 
 const options = {
   httpOnly: true,
@@ -32,15 +32,12 @@ const generateAccessAndRefreshToken = async (userId) => {
 };
 
 const registerUser = Asynchandler(async (req, res) => {
-  // 1. Get data from request body
   const { username, email, password } = req.body;
 
-  // 2. Validate inputs
   if ([username, email, password].some((field) => field?.trim() === "")) {
     throw new Apierror(400, "All fields are required");
   }
 
-  // 3. Check if user already exists
   const userExisted = await User.findOne({
     $or: [{ username }, { email }],
   });
@@ -49,35 +46,54 @@ const registerUser = Asynchandler(async (req, res) => {
     throw new Apierror(409, "User with email or username already exists");
   }
 
-  // 4. Create the user (Images will be handled in account setup later)
   const user = await User.create({
     username: username.toLowerCase(),
     email,
     password,
   });
 
-  // 5. Fetch user without sensitive fields
-  const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken",
-  );
+  // --- NEW LOGIC START ---
+  // 1. Generate tokens for the new user so they are logged in immediately
+  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
+
+  // 2. Define cookie options (ensure these match your login controller)
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+  // --- NEW LOGIC END ---
+
+  const createdUser = await User.findById(user._id).select("-password -refreshToken");
 
   if (!createdUser) {
     throw new Apierror(500, "Something went wrong while registering the user");
   }
 
-  // 6. Send success response
   return res
     .status(201)
-    .json(new Apiresponse(201, "User created successfully", createdUser));
+    .cookie("accessToken", accessToken, options) // Now accessToken is defined!
+    .cookie("refreshToken", refreshToken, options) // Now refreshToken is defined!
+    .json(
+      new Apiresponse(
+        201, 
+        { user: createdUser, accessToken, refreshToken }, 
+        "User created and logged in successfully"
+      )
+    );
 });
 
 const setupAccount = Asynchandler(async (req, res) => {
-  // 1. Retrieve files from request
-  const fullname = req.body
+  // 1. Retrieve files AND text fields
+  const { fullname } = req.body; // Correctly extract the string
+  
   const avatarLocalPath = req.files?.avatar?.[0]?.path;
   const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
-  // 2. Validation: Avatar is usually considered mandatory for a 'setup'
+  // 2. Validation
+  if (!fullname || fullname.trim() === "") {
+    throw new Apierror(400, "Full name is required");
+  }
+
   if (!avatarLocalPath) {
     throw new Apierror(400, "Avatar file is required to complete setup");
   }
@@ -89,31 +105,33 @@ const setupAccount = Asynchandler(async (req, res) => {
     throw new Apierror(500, "Error while uploading avatar");
   }
 
-  // Optional: Upload cover image if it exists
   let coverImage;
   if (coverImageLocalPath) {
     coverImage = await cloudinaryUploader(coverImageLocalPath);
   }
 
   // 4. Update the User in MongoDB
-  // We use findByIdAndUpdate because the user already exists from the register step
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
-        fullname:fullname,
+        fullname, // Now this is a clean string
         avatar: avatar.url,
         coverImage: coverImage?.url || "",
-        isProfileComplete: true ,
+        isProfileComplete: true,
       },
     },
-    { new: true } // Returns the updated document instead of the old one
+    { new: true }
   ).select("-password -refreshToken");
 
-  // 5. Return updated user
+  if (!user) {
+    throw new Apierror(404, "User not found");
+  }
+
+  // 5. Return success
   return res
     .status(200)
-    .json(new Apiresponse(200, "Account setup completed successfully", user));
+    .json(new Apiresponse(200, user, "Account setup completed successfully"));
 });
 
 const userLogin = Asynchandler(async (req, res) => {
@@ -175,6 +193,7 @@ const forgotPassword = Asynchandler(async (req, res) => {
 
   // 2. Create Reset Token
   const resetToken = crypto.randomBytes(20).toString("hex");
+  console.log("resetToken:",resetToken);
 
   // 3. Hash token and save to DB
   user.forgotPasswordToken = crypto
@@ -213,8 +232,14 @@ const forgotPassword = Asynchandler(async (req, res) => {
 
 const resetPassword = Asynchandler(async (req, res) => {
   const { token } = req.params;
+  if(!token){
+    throw new Apierror(404,"reset-token is required")
+  }
   const { password } = req.body;
 
+  if(!password){
+    throw new Apierror(404,"reset-token is required")
+  }
   // 1. Hash the incoming token to compare with DB
   const hashedToken = crypto
     .createHash("sha256")
