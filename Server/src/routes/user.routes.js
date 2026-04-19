@@ -19,10 +19,7 @@ import {
 import { upload } from "../middlewares/multer.middlewares.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
 import { getOptionalUser } from "../middlewares/optionalAuth.middleware.js";
-
-
 import passport from "passport";
-
 const router = Router();
 
 //first User-Routes
@@ -38,7 +35,7 @@ router.route("/setup-account").patch(
   setupAccount
 );
 router.route("/forgot-password").post(forgotPassword);
-router.route("/reset-password").patch(resetPassword);
+router.route("/reset-password/:token").patch(resetPassword);
 router.route("/Login").post(userLogin);
 router.route("/Logout").post(verifyJwt, userLogout);
 router.route("/refresh-token").post(refreshToken);
@@ -59,37 +56,48 @@ router.route("/complete-onboarding").patch(verifyJwt,completeOnboarding)
 // Social Auth routes
 router.route("/google").get(
   passport.authenticate("google", {
-    scope: ["profile", "email"],
-  }),
+    scope: ["profile", "email"], // Must be exactly 'scope'
+    prompt: "select_account"
+  })
 );
 
+// Route Google redirects back to
 router.route("/google/callback").get(
-  passport.authenticate("google", {
-    session: false,
+  passport.authenticate("google", { 
+    session: false, 
+    failureRedirect: "http://localhost:5173/login-failed" 
   }),
-
   async (req, res) => {
     try {
       const user = req.user;
 
-      const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-        user._id,
-      );
+      if (!user) {
+        return res.redirect("http://localhost:5173/login-failed");
+      }
+
+      // Generate your system's custom JWTs
+      const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
       const options = {
         httpOnly: true,
-        secure: true,
+        // Set secure to true only in production (HTTPS)
+        secure: process.env.NODE_ENV === "production", 
+        sameSite: "Lax"
       };
 
-      res.cookie("accessToken", accessToken, options);
-      res.cookie("refreshToken", refreshToken, options);
+      // Send cookies and redirect to frontend
+      res
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .redirect("http://localhost:5173/login-success");
 
-      res.redirect(`http://localhost:3000/login-success`);
     } 
+
     catch (error) {
-      res.redirect(`http://localhost:3000/login-failed`);
+      console.error("Callback Error:", error);
+      res.redirect("http://localhost:5173/login-failed");
     }
-  },
+  }
 );
 
 export { router };
