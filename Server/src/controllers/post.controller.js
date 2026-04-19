@@ -39,7 +39,6 @@ const createPost = Asynchandler(async (req, res) => {
 
   const createdPost = await Post.create({
     title,
-
     content,
     mediaImage: thumbnail.url,
     owner: req.user._id,
@@ -358,7 +357,7 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
   }
 
   const vector = await generateEmbedding(query);
-
+  
   const pipeline = await Post.aggregate([
     {
       $vectorSearch: {
@@ -373,7 +372,7 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
 
     {
       $lookup: {
-        from: "User",
+        from: "users",
         localField: "owner",
         foreignField: "_id",
         as: "owner",
