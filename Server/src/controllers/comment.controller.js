@@ -4,14 +4,14 @@ import { Apiresponse } from "../utils/Apiresponse.js";
 import {User} from "../models/user.models.js"
 import {Post} from "../models/post.models.js"
 import {paginateQuery} from "../utils/pagination.js"
-
+import { Comment } from "../models/comment.models.js";
 //when we write a route for this we use commentfiltermiddlewarw before 
 // this controller
 const userComment = Asynchandler(async (req,res) => {
     const {postId} = req.params;
 
  //maybe frontend send a object as parameter
-    const {content} = req.body;
+    const {commentText} = req.body;
 
     const userId = req.user._id;
 
@@ -24,7 +24,7 @@ const userComment = Asynchandler(async (req,res) => {
     const newComment = await Comment.create(
         {
             commentUserId:userId,
-            content:content,
+            content:commentText,
             postId:postId,
         }
     )
@@ -58,7 +58,7 @@ const deleteComment = Asynchandler(async (req,res) => {
 
     const userId = req.user._id;
 
-    const existingComment = await Comment.findById({commentId});
+    const existingComment = await Comment.findById(commentId);
     
     if(!existingComment){
         throw new Apierror(404,"comment does not exist");

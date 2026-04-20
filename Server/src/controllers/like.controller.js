@@ -16,7 +16,7 @@ const likedPost = Asynchandler(async (req, res) => {
     throw new Apierror(404, "posts not found");
   }
 
-  const existingLike = await Like.findOne({ post: postId, likedBy: userId });
+  const existingLike = await Like.findOne({ postId, likedBy: userId });
   if (existingLike) {
     throw new Apierror(400, "post has been liked by you alrady");
   }
@@ -75,15 +75,17 @@ const unlikePost = Asynchandler(async (req, res) => {
     throw new Apierror(200, "post does not exist");
   }
 
-  const likedPostExist = await Like.findOne({ postId, userId });
+  const likedPostExist = await Like.findOne({ postId, likedBy:userId });
 
   if (!likedPostExist) {
     throw new Apierror(400, "post is not liked yet");
   }
-
-  const unlike = await Like.findByIdAndDelete({ postId });
+ 
+  /*const unlike = await Like.findByIdAndDelete({ postId });*/
+  await Like.findOneAndDelete({postID,likedBy:userId})
 
   const updatedPost = await Post.findByIdAndUpdate(
+    postId,
     {
       $inc: {
         likeCount: -1,
@@ -111,7 +113,7 @@ const likedStatus = Asynchandler(async (req, res) => {
     throw new Apierror(200, "post does not exist");
   }
 
-  const likeExist = await Like.findOne({ postId, userId });
+  const likeExist = await Like.findOne({ postId, likedBy:userId });
 
   if (!likeExist) {
     const isLiked = false;

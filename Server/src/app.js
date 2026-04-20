@@ -5,18 +5,11 @@ import cors from "cors";
 import helmet from 'helmet';
 import {rateLimit} from "express-rate-limit"
 import express from 'express';
-import "./config/Passport.js";
+import "./Config/Passport.js";
 
 const app = express()
 
-//global multer error handler
 
-app.use((err, req, res, next) => {
-    if (err instanceof multer.MulterError) {
-        return res.status(400).json({ message: `Multer error: ${err.message}` });
-    }
-    res.status(500).json({ message: err.message });
-});
 
 // Essential for Rate Limiting to work on Render/Vercel
 app.set('trust proxy', 1);
@@ -99,6 +92,12 @@ app.use("/api/v1/comment",commentRouter)
 
 app.use("/api/v1/share",shareRouter)
 
-app.use("/api/v1/like",aiRateLimit,aiRouter)
+app.use("/api/v1/ai",aiRateLimit,aiRouter)
 
+app.use((err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+        return res.status(400).json({ message: `Multer error: ${err.message}` });
+    }
+    res.status(500).json({ message: err.message });
+});
 export {app}
