@@ -377,27 +377,39 @@ const changePassword = Asynchandler(async (req, res) => {
 const updateAccountDetails = Asynchandler(async (req, res) => {
   const { email, fullname, bio } = req.body;
 
-  if ([email, fullname, bio].some((fields) => fields?.trim() == "")) {
-    throw new Apierror(400, "fields are empty");
+  if ([email, fullname].some((field) => field?.trim() === "")) {
+    throw new Apierror(400, "Email and Full name are required");
+  }
+
+  const updateFields = {
+    email,
+    fullname,
+    bio,
+  };
+
+  // Check for avatar upload
+  const avatarLocalPath = req.file?.path;
+  if (avatarLocalPath) {
+    const avatar = await cloudinaryUploader(avatarLocalPath);
+    if (!avatar || !avatar.url) {
+      throw new Apierror(500, "Error while uploading new avatar");
+    }
+    updateFields.avatar = avatar.url;
   }
 
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
-      $set: {
-        email,
-        fullname,
-        bio,
-      },
+      $set: updateFields,
     },
     {
       new: true,
     },
-  ).select("-password");
+  ).select("-password -refreshToken");
 
   return res
     .status(200)
-    .json(new Apiresponse(200, user, "updated user details successfully"));
+    .json(new Apiresponse(200, user, "Profile updated successfully"));
 });
 
 const updateAvatar = Asynchandler(async (req, res) => {

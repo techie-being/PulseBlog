@@ -14,49 +14,48 @@ const SettingsPage = () => {
         email: user?.email || "",
         bio: user?.bio || "",
     });
+    const [avatarFile, setAvatarFile] = useState(null);
+    const [avatarPreview, setAvatarPreview] = useState(user?.avatar || "");
     const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const handleAvatarChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setAvatarFile(file);
+        setAvatarPreview(URL.createObjectURL(file));
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
+
+        const data = new FormData();
+        data.append("fullname", formData.fullname);
+        data.append("email", formData.email);
+        data.append("bio", formData.bio);
+        if (avatarFile) {
+            data.append("avatar", avatarFile);
+        }
+
         try {
-            const res = await axiosInstance.patch("/users/update-account", formData);
-            // Assuming the backend returns the updated user in res.data.data
-            // If it doesn't, we might need to fetch getCurrentUser again
-            toast.success("Profile updated!");
+            const res = await axiosInstance.patch("/users/update-account", data, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
             
-            // Re-fetch user to update Redux state
-            const userRes = await axiosInstance.get("/users/current-user");
-            dispatch(loginSuccess(userRes.data.data));
+            toast.success("Profile updated successfully! ✨");
             
+            // Update Redux state with the returned user
+            dispatch(loginSuccess(res.data.data));
+            setAvatarFile(null);
         } catch (err) {
             toast.error(err?.response?.data?.message || "Failed to update profile");
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleAvatarChange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const data = new FormData();
-        data.append("avatar", file);
-
-        try {
-            toast.loading("Uploading avatar...", { id: "avatar-upload" });
-            const res = await axiosInstance.patch("/users/update-avatar", data);
-            toast.success("Avatar updated!", { id: "avatar-upload" });
-            
-            // Update local state
-            const userRes = await axiosInstance.get("/users/current-user");
-            dispatch(loginSuccess(userRes.data.data));
-        } catch (err) {
-            toast.error("Failed to upload avatar", { id: "avatar-upload" });
         }
     };
 
@@ -70,7 +69,7 @@ const SettingsPage = () => {
                 <div className="flex flex-col items-center gap-4">
                     <div className="relative group w-32 h-32">
                         <img 
-                            src={user?.avatar || "/default-avatar.png"} 
+                            src={avatarPreview || "/default-avatar.png"} 
                             alt="avatar" 
                             className="w-32 h-32 rounded-full object-cover border-2 border-grey"
                         />

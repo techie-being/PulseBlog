@@ -41,7 +41,7 @@ router.route("/Logout").post(verifyJwt, userLogout);
 router.route("/refresh-token").post(refreshToken);
 router.route("/current-user").get(verifyJwt, getCurrentUser);
 router.route("/change-password").patch(verifyJwt,changePassword)
-router.route("/update-account").patch(verifyJwt,updateAccountDetails)
+router.route("/update-account").patch(verifyJwt, upload.single("avatar"), updateAccountDetails);
 router.route("/update-avatar").patch(verifyJwt,upload.single("avatar"),updateAvatar)
 router.route("/update-coverImage").patch(verifyJwt,upload.single("coverImage"),updateCoverImage)
 //search profile
