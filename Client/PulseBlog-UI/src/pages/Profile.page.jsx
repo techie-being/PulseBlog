@@ -73,7 +73,7 @@ const ProfilePage = () => {
 
                 {/* If it's their own profile, show an Edit button */}
                 {isMyProfile && (
-                    <Link to="/settings/edit-profile" className="btn-light mt-6">
+                    <Link to="/settings" className="btn-light mt-6">
                         Edit Profile
                     </Link>
                 )}

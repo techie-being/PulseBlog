@@ -101,15 +101,30 @@ const Navbar = () => {
                             </button>
 
                             {dropdownOpen && (
-                                <div className="absolute right-0 top-12 w-48 bg-white border border-grey rounded-xl shadow-lg z-50 overflow-hidden">
-                                    <div className="px-4 py-3 border-b border-grey">
-                                        <p className="font-medium truncate">{user?.username}</p>
+                                <div className="absolute right-0 top-14 w-60 bg-white border border-grey rounded-2xl shadow-2xl z-[150] overflow-hidden transform origin-top-right transition-all">
+                                    <div className="px-6 py-4 border-b border-grey bg-grey/20">
+                                        <p className="font-bold text-black truncate">{user?.username}</p>
                                         <p className="text-sm text-dark-grey truncate">{user?.email}</p>
                                     </div>
-                                    <Link to={`/user/${user?.username}`} className="block px-4 py-2 hover:bg-grey text-sm" onClick={() => setDropdownOpen(false)}>Profile</Link>
-                                    <Link to="/dashboard" className="block px-4 py-2 hover:bg-grey text-sm" onClick={() => setDropdownOpen(false)}>Dashboard</Link>
-                                    <Link to="/write" className="block px-4 py-2 hover:bg-grey text-sm" onClick={() => setDropdownOpen(false)}>Write a post</Link>
-                                    <button onClick={handleLogout} className="w-full text-left px-4 py-2 hover:bg-grey text-sm text-red-500">Sign Out</button>
+                                    <div className="py-2">
+                                        <Link to={`/user/${user?.username}`} className="flex items-center gap-3 px-6 py-3 hover:bg-grey text-sm transition-colors" onClick={() => setDropdownOpen(false)}>
+                                            <i className="fi fi-rr-user text-lg" /> Profile
+                                        </Link>
+                                        <Link to="/dashboard" className="flex items-center gap-3 px-6 py-3 hover:bg-grey text-sm transition-colors" onClick={() => setDropdownOpen(false)}>
+                                            <i className="fi fi-rr-apps text-lg" /> Dashboard
+                                        </Link>
+                                        <Link to="/write" className="flex items-center gap-3 px-6 py-3 hover:bg-grey text-sm transition-colors" onClick={() => setDropdownOpen(false)}>
+                                            <i className="fi fi-rr-edit text-lg" /> Write a post
+                                        </Link>
+                                        <Link to="/settings" className="flex items-center gap-3 px-6 py-3 hover:bg-grey text-sm transition-colors" onClick={() => setDropdownOpen(false)}>
+                                            <i className="fi fi-rr-settings text-lg" /> Settings
+                                        </Link>
+                                    </div>
+                                    <div className="border-t border-grey py-2">
+                                        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-6 py-3 hover:bg-red-50 text-sm text-red-500 transition-colors">
+                                            <i className="fi fi-rr-sign-out-alt text-lg" /> Sign Out
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>

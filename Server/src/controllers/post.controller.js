@@ -25,15 +25,20 @@ const createPost = Asynchandler(async (req, res) => {
 
   const thumbnail = await cloudinaryUploader(localPath);
 
-  //this takes title and content and conver tit into numerical values(embedding)
-  //when user search a query it converts those query to numeric value and match
-  //it with stored embedding it understands meanning rather than keyword
+  if (!thumbnail || !thumbnail.url) {
+    throw new Apierror(
+      500, 
+      "Image upload failed. Please check your internet connection or image format."
+    );
+  }
+
+  // Generate embedding for search and recommendation
   const embedding = await generateEmbedding(`${title}. ${content}`);
 
   if (!embedding) {
     throw new Apierror(
       500,
-      "embedding not generated due to some internal error",
+      "Vector embedding could not be generated. AI search features may be unavailable.",
     );
   }
 
@@ -307,45 +312,36 @@ const getPostByAuthor = Asynchandler(async (req, res) => {
       );
   }
 
-  return res.status(200).json({
-    status: 200,
-    data: result,
-    message: "All posts fetched successfully",
-  });
+  return res.status(200).json(
+    new Apiresponse(200, result, "All posts fetched successfully")
+  );
 });
 
-//in route postId should be their either wise it says undefined
+// Toggle status between Published and Draft
 const togglePostStatus = Asynchandler(async (req, res) => {
-  //verify jwt
   const { postId } = req.params;
 
   const post = await Post.findById(postId);
-
   if (!post) {
-    throw new Apierror(404, "post not found");
-  }
-  
-  if (!post.content || post.content.trim().length < 300) {
-    throw new Apierror(400, "Content is too short to publish. Add a few more words!");
+    throw new Apierror(404, "Post not found");
   }
 
-  
-  if (!post.mediaImage) {
-    console.log("Hey, adding an image increases engagement by 40%! Are you sure you want to publish without one?");
-  }
   if (post.owner.toString() !== req.user._id.toString()) {
-    throw new Apierror(403, "unauthorize to perform this request");
+    throw new Apierror(403, "You are not authorized to perform this request");
+  }
+
+  // If the user is trying to PUBLISH (changing draft to true)
+  if (!post.isPublished) {
+    if (!post.content || post.content.length < 50) {
+      throw new Apierror(400, "Content is too short to publish. Add some more details!");
+    }
   }
 
   post.isPublished = !post.isPublished;
-  const flippedStatus = await post.save();
+  const updatedPost = await post.save();
 
   return res.status(200).json(
-    new Apiresponse({
-      status: 200,
-      data: flippedStatus,
-      message: "status saved successfully",
-    }),
+    new Apiresponse(200, updatedPost, `Post ${updatedPost.isPublished ? 'published' : 'unpublished'} successfully`)
   );
 });
 

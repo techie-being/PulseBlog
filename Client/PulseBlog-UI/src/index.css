@@ -7,7 +7,7 @@
 
 @layer components {
     * {
-        @apply m-0 p-0 box-border text-base outline-purple/30 duration-100;
+        @apply m-0 p-0 box-border text-base outline-purple/30 transition-all duration-300;
     }
 
     html{
@@ -35,7 +35,7 @@
     }
 
     .navbar{
-        @apply z-10 sticky top-0 flex items-center gap-12 w-full px-[5vw] py-5 h-[80px] border-b border-grey bg-white;
+        @apply z-[100] sticky top-0 flex items-center gap-12 w-full px-[5vw] py-5 h-[80px] border-b border-grey bg-white/80 backdrop-blur-md;
     }
 
     .h-cover{
@@ -111,7 +111,7 @@
     }
 
     .blog-index{
-        @apply text-4xl sm:text-3xl lg:text-5xl font-bold text-grey leading-none;
+        @apply text-4xl sm:text-3xl lg:text-5xl font-bold text-grey leading-none opacity-20 group-hover:opacity-100 transition-opacity;
     }
 }
 
