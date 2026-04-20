@@ -13,14 +13,13 @@ const createPost = Asynchandler(async (req, res) => {
   const { title, content, tags, isPublished } = req.body;
 
   if (!title || !content) {
-    throw new Apierror(401, "title and content are mandat6ory");
+    throw new Apierror(400, "Title and content are mandatory");
   }
 
   const localPath = req.files?.mediaImage?.[0]?.path;
-  console.log("imagelink from os :", localPath);
 
   if (!localPath) {
-    throw new Apierror(401, "thumbnail local path not found");
+    throw new Apierror(400, "Thumbnail image is required");
   }
 
   const thumbnail = await cloudinaryUploader(localPath);
@@ -42,13 +41,21 @@ const createPost = Asynchandler(async (req, res) => {
     );
   }
 
+  // Handle tags: convert comma-separated string to array
+  let tagsArray = [];
+  if (tags && typeof tags === "string") {
+    tagsArray = tags.split(",").map(tag => tag.trim()).filter(tag => tag !== "");
+  } else if (Array.isArray(tags)) {
+    tagsArray = tags;
+  }
+
   const createdPost = await Post.create({
     title,
     content,
     mediaImage: thumbnail.url,
     owner: req.user._id,
-    tags: tags || [],
-    isPublished: isPublished || false,
+    tags: tagsArray,
+    isPublished: isPublished === "true" || isPublished === true,
     contentVector: embedding,
   });
 
@@ -68,18 +75,14 @@ const getAllPost = Asynchandler(async (req, res) => {
 
   if (isColdStart) {
     //this is temporarily set as false due tobakend consistency
-    const filter = { isPublished: false };
+    const filter = { isPublished: true };
     const result = await paginateQuery(Post, filter, page, limit, {
       populate: { path: "owner", select: "username avatar" },
       sort: { createdAt: -1 },
     });
 
     return res.status(200).json(
-      new Apiresponse({
-        status: 200,
-        result,
-        message: "posts fetched succesfully",
-      }),
+      new Apiresponse(200, result, "Posts fetched successfully")
     );
   }
 
@@ -96,7 +99,7 @@ const getAllPost = Asynchandler(async (req, res) => {
 
     {
       $match: {
-        isPublished: false,
+        isPublished: true,
       },
     },
 
@@ -126,25 +129,19 @@ const getAllPost = Asynchandler(async (req, res) => {
 
   const result = await paginateAggregate(Post, smartFeed, page, limit);
   //if user is logged in but dont have any inrest or interaction then only latest posts re recommended
-  const filter = { isPublished: false };
+  const filter = { isPublished: true };
   if (result.data.length === 0) {
     const result = await paginateQuery(Post, filter, page, limit, {
       populate: { path: "owner", select: "username avatar" },
       sort: { createdAt: -1 },
     });
     return res.status(200).json(
-      new Apiresponse({
-        status: 200,
-        result,
-        message: "posts fetched successfully",
-      }),
+      new Apiresponse(200, result, "Posts fetched successfully")
     );
   }
-  return res.status(200).json({
-    status: 200,
-    result,
-    message: "user preference related post fetched successfully",
-  });
+  return res.status(200).json(
+    new Apiresponse(200, result, "User preference related posts fetched successfully")
+  );
 });
 
 //it converts title in to slug then find post and return it
@@ -271,11 +268,9 @@ const updatePost = Asynchandler(async (req, res) => {
 
   const update = await findPost.save();
 
-  return res.status(200).json({
-    status: 200,
-    data: update,
-    message: "Post updated successfully",
-  });
+  return res.status(200).json(
+    new Apiresponse(200, update, "Post updated successfully")
+  );
 });
 
 const getPostByAuthor = Asynchandler(async (req, res) => {
@@ -362,7 +357,7 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
         queryVector: vector,
         numCandidates: 100,
         limit: 10,
-        filter: { isPublished: { $eq: false } },
+        filter: { isPublished: { $eq: true } },
       },
     },
 
@@ -405,11 +400,7 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
   const result = await paginateAggregate(Post, pipeline, page, limit);
 
   return res.status(200).json(
-    new Apiresponse(
-      200,
-      result,
-      "top Post recommended successfully",
-    ),
+    new Apiresponse(200, result, "Top posts recommended successfully")
   );
 });
 

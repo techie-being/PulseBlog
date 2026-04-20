@@ -26,6 +26,10 @@ const SettingsPage = () => {
         const file = e.target.files[0];
         if (!file) return;
 
+        if (file.size > 500 * 1024) {
+            return toast.error("Image must be under 500KB");
+        }
+
         setAvatarFile(file);
         setAvatarPreview(URL.createObjectURL(file));
     };
@@ -43,9 +47,8 @@ const SettingsPage = () => {
         }
 
         try {
-            const res = await axiosInstance.patch("/users/update-account", data, {
-                headers: { "Content-Type": "multipart/form-data" }
-            });
+            // FIX: Removed manual 'Content-Type' to let Axios handle it with the correct boundary
+            const res = await axiosInstance.patch("/users/update-account", data);
             
             toast.success("Profile updated successfully! ✨");
             

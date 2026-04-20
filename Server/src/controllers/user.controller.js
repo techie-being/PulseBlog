@@ -377,7 +377,7 @@ const changePassword = Asynchandler(async (req, res) => {
 const updateAccountDetails = Asynchandler(async (req, res) => {
   const { email, fullname, bio } = req.body;
 
-  if ([email, fullname].some((field) => field?.trim() === "")) {
+  if (!email || !fullname) {
     throw new Apierror(400, "Email and Full name are required");
   }
 

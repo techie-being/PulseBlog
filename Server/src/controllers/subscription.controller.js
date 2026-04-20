@@ -11,11 +11,11 @@ const toggleSubscription = Asynchandler(async (req,res) => {
     const userId = req.user?._id;
 
     if(!channelID){
-        throw new Apierror(404,"channel does nit exist");
+        throw new Apierror(404,"channel does not exist");
     }
 
-    if(subscriberId.toString() == channelID.toString()){
-        throw new Apierror(401,"you cannot follow yourself")
+    if(userId.toString() === channelID.toString()){
+        throw new Apierror(400,"You cannot follow yourself")
     }
 
     const credentials = {subscriber:userId,channel:channelID};
@@ -29,13 +29,7 @@ const toggleSubscription = Asynchandler(async (req,res) => {
         return res
         .status(200)
         .json(
-            new Apiresponse(
-                {
-                    status:201,
-                    followed:true,
-                    message:"user followed successfully"
-                }
-            )
+            new Apiresponse(200, { followed: true }, "User followed successfully")
         )   
     }
 
@@ -46,13 +40,7 @@ const toggleSubscription = Asynchandler(async (req,res) => {
     return res
     .status(200)
     .json(
-        new Apiresponse(
-            {
-                status:200,
-                followed:false,
-                messsage:"user infollowed successfully"
-            }
-        )
+        new Apiresponse(200, { followed: false }, "User unfollowed successfully")
     )
 
 
