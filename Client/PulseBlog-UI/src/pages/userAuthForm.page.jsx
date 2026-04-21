@@ -114,6 +114,19 @@ const UserAuthForm = ({ type }) => {
                     onChange={handleChange}
                 />
 
+                {/* --- FORGOT PASSWORD LINK START --- */}
+                {type === "sign-in" && (
+                    <div className="w-full flex justify-end mt-2 mb-4">
+                        <Link 
+                            to="/forgot-password" 
+                            className="text-sm text-dark-grey hover:text-black underline transition-colors"
+                        >
+                            Forgot Password?
+                        </Link>
+                    </div>
+                )}
+                {/* --- FORGOT PASSWORD LINK END --- */}
+
                 {/* Redux Error Display Area */}
                 {error && (
                     <p className="text-red-500 text-sm mb-4 text-center font-medium bg-red-50 p-2 rounded-md">
