@@ -5,6 +5,7 @@ import cors from "cors";
 import helmet from 'helmet';
 import {rateLimit} from "express-rate-limit"
 import express from 'express';
+import multer from 'multer';
 import "./Config/Passport.js";
 import multer from "multer";
 
@@ -20,7 +21,7 @@ app.use(cookieParser())
 
 //for valid request access only pulseblog frontend can talk to this
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5000',
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true, 
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -96,9 +97,19 @@ app.use("/api/v1/share",shareRouter)
 app.use("/api/v1/ai",aiRateLimit,aiRouter)
 
 app.use((err, req, res, next) => {
+    // Log the actual error for the developer to see in the terminal
+    console.error("--- SERVER ERROR LOG ---");
+    console.error(err);
+    console.error("-------------------------");
+
     if (err instanceof multer.MulterError) {
         return res.status(400).json({ message: `Multer error: ${err.message}` });
     }
-    res.status(500).json({ message: err.message });
+    
+    // Send a clean message to the frontend
+    res.status(err.statusCode || 500).json({ 
+        success: false,
+        message: err.message || "Internal Server Error" 
+    });
 });
 export {app}

@@ -41,8 +41,7 @@ router.route("/Logout").post(verifyJwt, userLogout);
 router.route("/refresh-token").post(refreshToken);
 router.route("/current-user").get(verifyJwt, getCurrentUser);
 router.route("/change-password").patch(verifyJwt,changePassword)
-router.route("/update-account").patch(verifyJwt,updateAccountDetails)
-router.route("/update-account").patch(verifyJwt,updateAccountDetails)
+router.route("/update-account").patch(verifyJwt, upload.single("avatar"), updateAccountDetails);
 router.route("/update-avatar").patch(verifyJwt,upload.single("avatar"),updateAvatar)
 router.route("/update-coverImage").patch(verifyJwt,upload.single("coverImage"),updateCoverImage)
 //search profile
@@ -65,14 +64,14 @@ router.route("/google").get(
 router.route("/google/callback").get(
   passport.authenticate("google", { 
     session: false, 
-    failureRedirect: "http://localhost:5173/login-failed" 
+    failureRedirect: `${process.env.FRONTEND_URL}/login-failed` 
   }),
   async (req, res) => {
     try {
       const user = req.user;
 
       if (!user) {
-        return res.redirect("http://localhost:5173/login-failed");
+        return res.redirect(`${process.env.FRONTEND_URL}/login-failed`);
       }
 
       // Generate your system's custom JWTs
@@ -89,13 +88,13 @@ router.route("/google/callback").get(
       res
         .cookie("accessToken", accessToken, options)
         .cookie("refreshToken", refreshToken, options)
-        .redirect("http://localhost:5173/login-success");
+        .redirect(`${process.env.FRONTEND_URL}/login-success`);
 
     } 
 
     catch (error) {
       console.error("Callback Error:", error);
-      res.redirect("http://localhost:5173/login-failed");
+      res.redirect(`${process.env.FRONTEND_URL}/login-failed`);
     }
   }
 );

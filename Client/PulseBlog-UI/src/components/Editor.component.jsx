@@ -8,20 +8,18 @@ import Marker from "@editorjs/marker";
 import InlineCode from "@editorjs/inline-code";
 import Embed from "@editorjs/embed";
 
-const EditorComponent = ({ onChange }) => {
+const EditorComponent = ({ initialContent, onChange }) => {
     const editorRef     = useRef(null);   
     const holderRef     = useRef(null);   
-    const isReady       = useRef(false);  
 
     useEffect(() => {
-        if (isReady.current) return;
         if (!holderRef.current) return;
-        isReady.current = true;
 
-        editorRef.current = new EditorJS({
+        const editor = new EditorJS({
             holder: holderRef.current,
             autofocus: true,
             placeholder: "Tell your story...",
+            data: initialContent || {},
             tools: {
                 header: {
                     class: Header,
@@ -35,14 +33,17 @@ const EditorComponent = ({ onChange }) => {
                 embed: Embed,
             },
             onChange: async () => {
-                const data = await editorRef.current.save();
+                const data = await editor.save();
                 onChange(data);
             },
         });
 
+        editorRef.current = editor;
+
         return () => {
-            if (editorRef.current && editorRef.current.destroy) {
+            if (editorRef.current && typeof editorRef.current.destroy === 'function') {
                 editorRef.current.destroy();
+                editorRef.current = null;
             }
         };
     }, []);   

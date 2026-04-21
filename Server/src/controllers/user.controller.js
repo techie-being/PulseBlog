@@ -11,7 +11,8 @@ import {sendEmail} from "../utils/sendEmail.js";
 
 const options = {
   httpOnly: true,
-  secure: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "Lax",
 };
 
 const generateAccessAndRefreshToken = async (userId) => {
@@ -56,11 +57,7 @@ const registerUser = Asynchandler(async (req, res) => {
   // 1. Generate tokens for the new user so they are logged in immediately
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
-  // 2. Define cookie options (ensure these match your login controller)
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
+  // 2. Cookie options are defined globally at the top
   // --- NEW LOGIC END ---
 
   const createdUser = await User.findById(user._id).select("-password -refreshToken");
@@ -380,27 +377,39 @@ const changePassword = Asynchandler(async (req, res) => {
 const updateAccountDetails = Asynchandler(async (req, res) => {
   const { email, fullname, bio } = req.body;
 
-  if ([email, fullname, bio].some((fields) => fields?.trim() == "")) {
-    throw new Apierror(400, "fields are empty");
+  if (!email || !fullname) {
+    throw new Apierror(400, "Email and Full name are required");
+  }
+
+  const updateFields = {
+    email,
+    fullname,
+    bio,
+  };
+
+  // Check for avatar upload
+  const avatarLocalPath = req.file?.path;
+  if (avatarLocalPath) {
+    const avatar = await cloudinaryUploader(avatarLocalPath);
+    if (!avatar || !avatar.url) {
+      throw new Apierror(500, "Error while uploading new avatar");
+    }
+    updateFields.avatar = avatar.url;
   }
 
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
-      $set: {
-        email,
-        fullname,
-        bio,
-      },
+      $set: updateFields,
     },
     {
       new: true,
     },
-  ).select("-password");
+  ).select("-password -refreshToken");
 
   return res
     .status(200)
-    .json(new Apiresponse(200, "updated user details successfully"));
+    .json(new Apiresponse(200, user, "Profile updated successfully"));
 });
 
 const updateAvatar = Asynchandler(async (req, res) => {
@@ -592,11 +601,9 @@ const completeOnboarding = Asynchandler(async (req, res) => {
     throw new Apierror(404, "User profile not found");
   }
 
-  return res.status(200).json({
-    success: true,
-    message: "User preference and vector profile stored successfully",
-    data: { isNewUser: updatedUser.isNewUser },
-  });
+  return res.status(200).json(
+    new Apiresponse(200, { isNewUser: updatedUser.isNewUser }, "User preference and vector profile stored successfully")
+  );
 });
 
 export {
