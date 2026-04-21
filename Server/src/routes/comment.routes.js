@@ -1,5 +1,7 @@
 import { Router } from "express";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
+import { blockToxicity } from "../middlewares/comment.filter.middleware.js";
+
 import {
     userComment,
     deleteComment,
