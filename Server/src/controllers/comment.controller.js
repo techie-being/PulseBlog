@@ -43,12 +43,12 @@ const userComment = Asynchandler(async (req,res) => {
     .status(200)
     .json(
         new Apiresponse(
+            200,
             {
-                status:200,
                 comment:newComment,
                 totalComment:updatePost.commentCount,
-                message:"User comment crated successfully"
-            }
+            },
+            "User comment created successfully"
         )
     )
 })
@@ -83,15 +83,8 @@ const deleteComment = Asynchandler(async (req,res) => {
     return res
     .status(200)
     .json(
-        new Apiresponse(
-            {
-                status:200,
-                data:updatePost.commentCount,
-                message:"user deleted comment successfully"
-            }
-        )
+        new Apiresponse(200, updatePost.commentCount, "User deleted comment successfully")
     )
-
 })
 
 const updateComment = Asynchandler(async (req,res) => {
@@ -127,11 +120,7 @@ const updateComment = Asynchandler(async (req,res) => {
     return res
     .status(200)
     .json(
-        new Apiresponse({
-            status:200,
-            data:updatedComment,
-            message:"user updated his comment successfully"
-        })
+        new Apiresponse(200, updatedComment, "User updated his comment successfully")
     )
 })
 
@@ -151,11 +140,7 @@ const getPostComments = Asynchandler(async (req, res) => {
     );
 
     return res.status(200).json(
-        new Apiresponse({
-            status: 200,
-            data: result,
-            message: "Comments fetched successfully",
-        })
+        new Apiresponse(200, result, "Comments fetched successfully")
     );
 });
 

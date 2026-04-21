@@ -35,11 +35,7 @@ const likedPost = Asynchandler(async (req, res) => {
   );
 
   return res.status(200).json(
-    new Apiresponse({
-      status: 200,
-      data: updatedLike.likeCount,
-      message: "user liked successfully",
-    }),
+    new Apiresponse(200, updatedLike.likeCount, "User liked successfully")
   );
 });
 
@@ -56,11 +52,7 @@ const getLikedList = Asynchandler(async (req, res) => {
     );
 
     return res.status(200).json(
-        new Apiresponse({
-            status: 200,
-            data: result, 
-            message: "Post liked users fetched successfully",
-        })
+        new Apiresponse(200, result, "Post liked users fetched successfully")
     );
 });
 
@@ -81,8 +73,7 @@ const unlikePost = Asynchandler(async (req, res) => {
     throw new Apierror(400, "post is not liked yet");
   }
  
-  /*const unlike = await Like.findByIdAndDelete({ postId });*/
-  await Like.findOneAndDelete({postID,likedBy:userId})
+  await Like.findOneAndDelete({ postId, likedBy: userId });
 
   const updatedPost = await Post.findByIdAndUpdate(
     postId,
@@ -95,11 +86,7 @@ const unlikePost = Asynchandler(async (req, res) => {
   );
 
   return res.status(200).json(
-    new Apiresponse({
-      status: 200,
-      data: updatedPost.likeCount,
-      message: "user successfully unliked the post",
-    }),
+    new Apiresponse(200, updatedPost.likeCount, "User successfully unliked the post")
   );
 });
 
@@ -116,23 +103,13 @@ const likedStatus = Asynchandler(async (req, res) => {
   const likeExist = await Like.findOne({ postId, likedBy:userId });
 
   if (!likeExist) {
-    const isLiked = false;
     return res.status(200).json(
-      new Apiresponse({
-        status: 200,
-        data: isLiked,
-        measage: "user has not liked this post",
-      }),
+      new Apiresponse(200, false, "User has not liked this post")
     );
   }
 
-  const isLiked = true;
   return res.status(200).json(
-    new Apiresponse({
-      status: 200,
-      data: isLiked,
-      measage: "user has not liked this post",
-    }),
+    new Apiresponse(200, true, "User has liked this post")
   );
 });
 

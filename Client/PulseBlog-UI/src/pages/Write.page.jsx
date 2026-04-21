@@ -30,7 +30,9 @@ const WritePage = () => {
         const fetchPost = async () => {
             try {
                 const res = await axiosInstance.get(`/posts/get-post/${postId}`);
-                const post = res.data?.data || res.data;
+                const responseData = res.data?.data || res.data;
+                // If the response is wrapped in { post, relatedPosts }
+                const post = responseData.post || responseData;
 
                 setTitle(post.title || "");
                 setTags(Array.isArray(post.tags) ? post.tags.join(", ") : post.tags || "");
@@ -79,8 +81,9 @@ const WritePage = () => {
 
         setIsAiLoading(true);
         try {
-            const res = await axiosInstance.get(`/ai/simplify`, { 
-                data: { selectedText: title } 
+            // Using POST correctly as per backend fix
+            const res = await axiosInstance.post(`/ai/simplify`, { 
+                selectedText: title 
             });
             
             const result = res.data?.data?.simplified_explanation;
@@ -212,7 +215,7 @@ const WritePage = () => {
                     className="input-box mb-6"
                 />
 
-                {/* NOTE: Make sure EditorComponent accepts `initialContent` prop to pre-fill blocks */}
+                {/* Pass initialContent only when available during edit mode */}
                 <EditorComponent initialContent={content} onChange={setContent} />
 
                 <div className="flex gap-3 justify-end mt-8">

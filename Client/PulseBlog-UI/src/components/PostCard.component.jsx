@@ -8,7 +8,7 @@ const PostCard = ({ post, index }) => {
     } = post;
 
     return (
-            <Link to={`/post/${_id}`} className="flex gap-6 py-8 border-b border-grey group">
+            <Link to={`/post/${_id}`} className="flex gap-6 py-8 border-b border-grey group transition-all duration-300 hover:pl-2">
             <div className="flex-1 min-w-0">
             <div className="flex gap-2 items-center mb-3">
                     <img
@@ -41,14 +41,16 @@ const PostCard = ({ post, index }) => {
                 </div>
             </div>
 
-            <div className="flex flex-col items-end gap-4">
+            <div className="flex flex-col items-end justify-between min-w-[120px]">
                 <span className="blog-index">{String(index + 1).padStart(2, "0")}</span>
                 {mediaImage && (
-                    <img
-                        src={mediaImage}
-                        alt={title}
-                        className="w-28 h-28 rounded-xl object-cover hidden sm:block"
-                    />
+                    <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl overflow-hidden shadow-md hidden sm:block">
+                        <img
+                            src={mediaImage}
+                            alt={title}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                    </div>
                 )}
             </div>
         </Link>

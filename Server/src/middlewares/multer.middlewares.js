@@ -13,7 +13,7 @@ export const upload = multer({
   storage,
 
   limits: {
-    fileSize: 100 * 1024, // Strictly 100 KB
+    fileSize: 500 * 1024, // Increased to 500 KB to support standard avatars
   },
   
   fileFilter: (req, file, cb) => {

@@ -10,9 +10,9 @@ from "../controllers/ai.controller.js";
 
 const router = Router()
 
-router.route("/ai-summary").get(verifyJwt,generateAiSummary);
-router.route("/asset-generator").get(verifyJwt,assetGenerator);
-router.route("/simplify").get(verifyJwt,simplifyText);
-router.route("/polished-draft").get(verifyJwt,polishDraft);
+router.route("/ai-summary").post(verifyJwt,generateAiSummary);
+router.route("/asset-generator").post(verifyJwt,assetGenerator);
+router.route("/simplify").post(verifyJwt,simplifyText);
+router.route("/polished-draft").post(verifyJwt,polishDraft);
 
 export {router}

@@ -4,39 +4,52 @@ import { useSelector } from "react-redux";
 import toast, { Toaster } from "react-hot-toast";
 import axiosInstance from "../api/axiosInstance";
 
+import ConfirmationModal from "../components/ConfirmationModal.component";
+
 const DashboardPage = () => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const { user, isLoggedIn } = useSelector((state) => state.auth);
 
+    // Modal state
+    const [modalConfig, setModalConfig] = useState({
+        isOpen: false,
+        type: "danger",
+        title: "",
+        message: "",
+        onConfirm: () => {},
+    });
+
+    const openModal = (config) => {
+        setModalConfig({ ...config, isOpen: true });
+    };
+
+    const closeModal = () => {
+        setModalConfig((prev) => ({ ...prev, isOpen: false }));
+    };
+
     useEffect(() => {
         const fetchMyPosts = async () => {
-        if (!user?._id) return;
-        try {
-            setLoading(true);
-            const res = await axiosInstance.get(`/posts/get-post-by-author/${user._id}`);
-            // FIX: was res.data.data — actual shape is res.data.data.data
-            setPosts(res.data.data?.data || []);
-        } catch (err) {
-            toast.error("Failed to fetch your posts");
-        } finally {
-            setLoading(false);
-        }
+            if (!user?._id) return;
+            try {
+                setLoading(true);
+                const res = await axiosInstance.get(`/posts/get-post-by-author/${user._id}`);
+                setPosts(res.data.data?.data || []);
+            } catch (err) {
+                toast.error("Failed to fetch your posts");
+            } finally {
+                setLoading(false);
+            }
         };
-
 
         if (isLoggedIn) {
             fetchMyPosts();
         }
     }, [user, isLoggedIn]);
 
-    const handleDelete = async (postId) => {
-        // Double-check before deleting
-        if (!window.confirm("Are you sure you want to delete this post? This cannot be undone.")) return;
-
+    const performDelete = async (postId) => {
         try {
             await axiosInstance.delete(`/posts/delete-post/${postId}`);
-            // Remove the deleted post from the screen immediately
             setPosts((prev) => prev.filter((post) => post._id !== postId));
             toast.success("Post deleted successfully");
         } catch (err) {
@@ -44,11 +57,19 @@ const DashboardPage = () => {
         }
     };
 
-    const handleToggleStatus = async (postId, currentStatus) => {
+    const handleDelete = (postId, title) => {
+        openModal({
+            type: "danger",
+            title: "Delete Post?",
+            message: `Are you sure you want to delete "${title}"? This action cannot be undone.`,
+            confirmText: "Delete",
+            onConfirm: () => performDelete(postId),
+        });
+    };
+
+    const performToggleStatus = async (postId, currentStatus) => {
         try {
             await axiosInstance.patch(`/posts/post-toggle-status/${postId}`);
-            
-            // Update the post status locally so the UI updates instantly
             setPosts((prev) => 
                 prev.map((post) => 
                     post._id === postId ? { ...post, isPublished: !currentStatus } : post
@@ -56,8 +77,19 @@ const DashboardPage = () => {
             );
             toast.success(`Post moved to ${!currentStatus ? 'Published' : 'Drafts'}`);
         } catch (err) {
-            toast.error("Failed to update post status");
+            toast.error(err?.response?.data?.message || "Failed to update post status");
         }
+    };
+
+    const handleToggleStatus = (postId, title, currentStatus) => {
+        const action = currentStatus ? "unpublish" : "publish";
+        openModal({
+            type: currentStatus ? "warning" : "primary",
+            title: `${currentStatus ? 'Unpublish' : 'Publish'} Post?`,
+            message: `Are you sure you want to ${action} "${title}"?`,
+            confirmText: currentStatus ? "Unpublish" : "Publish",
+            onConfirm: () => performToggleStatus(postId, currentStatus),
+        });
     };
 
     if (!isLoggedIn) {
@@ -105,43 +137,52 @@ const DashboardPage = () => {
                                         </span>
                                     </div>
 
-                                    <div className="flex gap-4 mt-4 md:mt-0">
-                                        <Link 
-                                            to={`/post/${post._id}`} 
-                                            className="text-sm font-medium hover:underline text-dark-grey"
-                                        >
-                                            View
-                                        </Link>
+                                    <div className="flex gap-4 mt-4 md:mt-0 items-center">
+                                         <Link 
+                                             to={`/post/${post._id}`} 
+                                             className="text-sm font-medium hover:underline text-dark-grey"
+                                         >
+                                             View
+                                         </Link>
 
-                                        {/* ADDED: Edit Button */}
-                                        <Link 
-                                            to={`/edit/${post._id}`} 
-                                            className="text-sm font-medium hover:underline text-dark-grey"
-                                        >
-                                            Edit
-                                        </Link>
-                                        
-                                        <button 
-                                            onClick={() => handleToggleStatus(post._id, post.isPublished)}
-                                            className="text-sm font-medium hover:underline text-blue-500"
-                                        >
-                                            {post.isPublished ? "Unpublish" : "Publish"}
-                                        </button>
+                                         <Link 
+                                             to={`/edit/${post._id}`} 
+                                             className="text-sm font-medium hover:underline text-dark-grey"
+                                         >
+                                             Edit
+                                         </Link>
+                                         
+                                         <button 
+                                             onClick={() => handleToggleStatus(post._id, post.title, post.isPublished)}
+                                             className="text-sm font-medium hover:underline text-blue-500"
+                                         >
+                                             {post.isPublished ? "Unpublish" : "Publish"}
+                                         </button>
 
-                                        <button 
-                                            onClick={() => handleDelete(post._id)}
-                                            className="text-sm font-medium hover:underline text-red-500 ml-auto md:ml-0"
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-        </section>
+                                         <button 
+                                             onClick={() => handleDelete(post._id, post.title)}
+                                             className="text-sm font-medium hover:underline text-red-500 ml-auto md:ml-0"
+                                         >
+                                             Delete
+                                         </button>
+                                     </div>
+                                 </div>
+                             </div>
+                         ))}
+                     </div>
+                 )}
+             </div>
+
+             <ConfirmationModal 
+                isOpen={modalConfig.isOpen}
+                onClose={closeModal}
+                onConfirm={modalConfig.onConfirm}
+                title={modalConfig.title}
+                message={modalConfig.message}
+                confirmText={modalConfig.confirmText}
+                type={modalConfig.type}
+             />
+         </section>
     );
 };
 

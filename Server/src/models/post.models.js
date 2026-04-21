@@ -81,7 +81,7 @@ const postSchema = new Schema(
 postSchema.post("save", async function (doc, next) {
     try {
         await mongoose.model("User").findByIdAndUpdate(doc.owner, {
-            $inc: { postsCount: 1 }
+            $inc: { postCount: 1 }
         });
         next();
     } catch (error) {
@@ -94,7 +94,7 @@ postSchema.post("findOneAndDelete", async function (doc, next) {
     try {
         if (doc) {
             await mongoose.model("User").findByIdAndUpdate(doc.owner, {
-                $inc: { postsCount: -1 }
+                $inc: { postCount: -1 }
             });
         }
         next();

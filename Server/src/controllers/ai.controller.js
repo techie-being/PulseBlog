@@ -44,11 +44,7 @@ const generateAiSummary = Asynchandler(async (req, res) => {
   const generatedAiSummary = JSON.parse(response.choices[0].message.content);
 
   return res.status(200).json(
-    new Apiresponse({
-      status: 200,
-      data: generatedAiSummary,
-      message: "Generated data successfully",
-    }),
+    new Apiresponse(200, generatedAiSummary, "Generated data successfully")
   );
 });
 
@@ -102,11 +98,7 @@ const assetGenerator = Asynchandler(async (req, res) => {
   const generatedAsset = JSON.parse(response.choices[0].message.content);
 
   return res.status(200).json(
-    new Apiresponse({
-      status: 200,
-      data: generatedAsset,
-      message: "social media posts are generated",
-    }),
+    new Apiresponse(200, generatedAsset, "social media posts are generated")
   );
 });
 
@@ -150,13 +142,7 @@ const simplifyText = Asynchandler(async (req, res) => {
   return res
   .status(200)
   .json(
-    new Apiresponse(
-      {
-        status:200,
-        data:simplifiedText,
-        message:"selected text simplified successfully",
-      }
-    )
+    new Apiresponse(200, simplifiedText, "selected text simplified successfully")
   )
 });
 
@@ -206,13 +192,7 @@ const polishDraft = Asynchandler(async (req, res) => {
   return res
   .status(200)
   .json(
-    new Apiresponse(
-      {
-        status:200,
-        data:polishedData,
-        message:"selected text simplified successfully",
-      }
-    )
+    new Apiresponse(200, polishedData, "Draft polished successfully")
   );
   
 });

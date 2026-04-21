@@ -9,6 +9,7 @@ import DashboardPage from "./pages/Dashboard.page";
 import ProfilePage from "./pages/Profile.page";
 import SearchPage from "./pages/Search.page";
 import OnboardingPage from "./pages/Onboarding.page";
+import SettingsPage from "./pages/Settings.page";
 
 
 const App = () => {
@@ -30,6 +31,7 @@ const App = () => {
                     <Route path="/user/:username" element={<ProfilePage />} />
                     <Route path="search" element={<SearchPage />} />
                     <Route path="onboarding" element={<OnboardingPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
                 </Route>
             </Routes>
         </>

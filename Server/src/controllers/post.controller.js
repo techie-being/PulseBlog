@@ -13,28 +13,40 @@ const createPost = Asynchandler(async (req, res) => {
   const { title, content, tags, isPublished } = req.body;
 
   if (!title || !content) {
-    throw new Apierror(401, "title and content are mandat6ory");
+    throw new Apierror(400, "Title and content are mandatory");
   }
 
   const localPath = req.files?.mediaImage?.[0]?.path;
-  console.log("imagelink from os :", localPath);
 
   if (!localPath) {
-    throw new Apierror(401, "thumbnail local path not found");
+    throw new Apierror(400, "Thumbnail image is required");
   }
 
   const thumbnail = await cloudinaryUploader(localPath);
 
-  //this takes title and content and conver tit into numerical values(embedding)
-  //when user search a query it converts those query to numeric value and match
-  //it with stored embedding it understands meanning rather than keyword
+  if (!thumbnail || !thumbnail.url) {
+    throw new Apierror(
+      500, 
+      "Image upload failed. Please check your internet connection or image format."
+    );
+  }
+
+  // Generate embedding for search and recommendation
   const embedding = await generateEmbedding(`${title}. ${content}`);
 
   if (!embedding) {
     throw new Apierror(
       500,
-      "embedding not generated due to some internal error",
+      "Vector embedding could not be generated. AI search features may be unavailable.",
     );
+  }
+
+  // Handle tags: convert comma-separated string to array
+  let tagsArray = [];
+  if (tags && typeof tags === "string") {
+    tagsArray = tags.split(",").map(tag => tag.trim()).filter(tag => tag !== "");
+  } else if (Array.isArray(tags)) {
+    tagsArray = tags;
   }
 
   const createdPost = await Post.create({
@@ -42,8 +54,8 @@ const createPost = Asynchandler(async (req, res) => {
     content,
     mediaImage: thumbnail.url,
     owner: req.user._id,
-    tags: tags || [],
-    isPublished: isPublished || false,
+    tags: tagsArray,
+    isPublished: isPublished === "true" || isPublished === true,
     contentVector: embedding,
   });
 
@@ -63,18 +75,14 @@ const getAllPost = Asynchandler(async (req, res) => {
 
   if (isColdStart) {
     //this is temporarily set as false due tobakend consistency
-    const filter = { isPublished: false };
+    const filter = { isPublished: true };
     const result = await paginateQuery(Post, filter, page, limit, {
       populate: { path: "owner", select: "username avatar" },
       sort: { createdAt: -1 },
     });
 
     return res.status(200).json(
-      new Apiresponse({
-        status: 200,
-        result,
-        message: "posts fetched succesfully",
-      }),
+      new Apiresponse(200, result, "Posts fetched successfully")
     );
   }
 
@@ -91,7 +99,7 @@ const getAllPost = Asynchandler(async (req, res) => {
 
     {
       $match: {
-        isPublished: false,
+        isPublished: true,
       },
     },
 
@@ -121,25 +129,19 @@ const getAllPost = Asynchandler(async (req, res) => {
 
   const result = await paginateAggregate(Post, smartFeed, page, limit);
   //if user is logged in but dont have any inrest or interaction then only latest posts re recommended
-  const filter = { isPublished: false };
+  const filter = { isPublished: true };
   if (result.data.length === 0) {
     const result = await paginateQuery(Post, filter, page, limit, {
       populate: { path: "owner", select: "username avatar" },
       sort: { createdAt: -1 },
     });
     return res.status(200).json(
-      new Apiresponse({
-        status: 200,
-        result,
-        message: "posts fetched successfully",
-      }),
+      new Apiresponse(200, result, "Posts fetched successfully")
     );
   }
-  return res.status(200).json({
-    status: 200,
-    result,
-    message: "user preference related post fetched successfully",
-  });
+  return res.status(200).json(
+    new Apiresponse(200, result, "User preference related posts fetched successfully")
+  );
 });
 
 //it converts title in to slug then find post and return it
@@ -266,11 +268,9 @@ const updatePost = Asynchandler(async (req, res) => {
 
   const update = await findPost.save();
 
-  return res.status(200).json({
-    status: 200,
-    data: update,
-    message: "Post updated successfully",
-  });
+  return res.status(200).json(
+    new Apiresponse(200, update, "Post updated successfully")
+  );
 });
 
 const getPostByAuthor = Asynchandler(async (req, res) => {
@@ -307,45 +307,36 @@ const getPostByAuthor = Asynchandler(async (req, res) => {
       );
   }
 
-  return res.status(200).json({
-    status: 200,
-    data: result,
-    message: "All posts fetched successfully",
-  });
+  return res.status(200).json(
+    new Apiresponse(200, result, "All posts fetched successfully")
+  );
 });
 
-//in route postId should be their either wise it says undefined
+// Toggle status between Published and Draft
 const togglePostStatus = Asynchandler(async (req, res) => {
-  //verify jwt
   const { postId } = req.params;
 
   const post = await Post.findById(postId);
-
   if (!post) {
-    throw new Apierror(404, "post not found");
-  }
-  
-  if (!post.content || post.content.trim().length < 300) {
-    throw new Apierror(400, "Content is too short to publish. Add a few more words!");
+    throw new Apierror(404, "Post not found");
   }
 
-  
-  if (!post.mediaImage) {
-    console.log("Hey, adding an image increases engagement by 40%! Are you sure you want to publish without one?");
-  }
   if (post.owner.toString() !== req.user._id.toString()) {
-    throw new Apierror(403, "unauthorize to perform this request");
+    throw new Apierror(403, "You are not authorized to perform this request");
+  }
+
+  // If the user is trying to PUBLISH (changing draft to true)
+  if (!post.isPublished) {
+    if (!post.content || post.content.length < 50) {
+      throw new Apierror(400, "Content is too short to publish. Add some more details!");
+    }
   }
 
   post.isPublished = !post.isPublished;
-  const flippedStatus = await post.save();
+  const updatedPost = await post.save();
 
   return res.status(200).json(
-    new Apiresponse({
-      status: 200,
-      data: flippedStatus,
-      message: "status saved successfully",
-    }),
+    new Apiresponse(200, updatedPost, `Post ${updatedPost.isPublished ? 'published' : 'unpublished'} successfully`)
   );
 });
 
@@ -366,7 +357,7 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
         queryVector: vector,
         numCandidates: 100,
         limit: 10,
-        filter: { isPublished: { $eq: false } },
+        filter: { isPublished: { $eq: true } },
       },
     },
 
@@ -409,11 +400,7 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
   const result = await paginateAggregate(Post, pipeline, page, limit);
 
   return res.status(200).json(
-    new Apiresponse(
-      200,
-      result,
-      "top Post recommended successfully",
-    ),
+    new Apiresponse(200, result, "Top posts recommended successfully")
   );
 });
 
