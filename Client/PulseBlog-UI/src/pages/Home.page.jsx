@@ -12,30 +12,36 @@ const HomePage = () => {
     const [fetching, setFetching] = useState(false);
 
     const fetchPosts = async (pageNum = 1) => {
-        try {
-            pageNum === 1 ? setLoading(true) : setFetching(true);
-            
-            // Calling your backend route
-            const { data } = await axiosInstance.get(`/posts/get-all-posts?page=${pageNum}&limit=10`);
-            
-            // Your backend sends: { status: 200, data: { data: [...], pagination: {...} }, message: "..." }
-            // Extract the result payload (which contains the array and pagination)
-            const resultPayload = data.data; 
+      try {
+        pageNum === 1 ? setLoading(true) : setFetching(true);
 
-            if (resultPayload) {
-                const newPosts = resultPayload.data || [];
-                const pagination = resultPayload.pagination || {};
+        const response = await axiosInstance.get(
+          `/posts/get-all-posts?page=${pageNum}&limit=10`,
+        );
 
-                setPosts((prev) => (pageNum === 1 ? newPosts : [...prev, ...newPosts]));
-                setHasMore(pagination.hasNextPage || false);
-            }
-        } catch (err) {
-            console.error("Home Feed Error:", err);
-            toast.error(err.response?.data?.message || "Failed to load the feed");
-        } finally {
-            setLoading(false);
-            setFetching(false);
+        // DEBUG: Look at your console!
+        // See if the array is in response.data.data.data or response.data.data.docs
+        console.log("Full Server Response:", response.data);
+
+        const resultPayload = response.data?.data;
+
+        if (resultPayload) {
+          // Check if your pagination utility uses 'data', 'docs', or 'posts'
+          const newPosts = resultPayload.data || resultPayload.docs || [];
+          const pagination = resultPayload.pagination || {};
+
+          setPosts((prev) =>
+            pageNum === 1 ? newPosts : [...prev, ...newPosts],
+          );
+          setHasMore(pagination.hasNextPage || false);
         }
+      } catch (err) {
+        console.error("Home Feed Error:", err);
+        toast.error(err.response?.data?.message || "Failed to load the feed");
+      } finally {
+        setLoading(false);
+        setFetching(false);
+      }
     };
 
     // Initial fetch

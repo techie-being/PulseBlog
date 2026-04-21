@@ -57,9 +57,11 @@ const postSchema = new Schema(
             default:0
         },
 
-        commentCount:{
-            type:Number,
-            default:null,
+        commentCount: {
+            type: Number,
+            default: 0,
+    // Ensures that even if null or undefined is passed, it becomes 0
+            set: (v) => v ?? 0 
         },
 
         shareCount:{
