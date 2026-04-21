@@ -63,18 +63,15 @@ const getAllPost = Asynchandler(async (req, res) => {
 
   if (isColdStart) {
     //this is temporarily set as false due tobakend consistency
-    const filter = { isPublished: false };
+    const filter = { isPublished: true };
+
     const result = await paginateQuery(Post, filter, page, limit, {
       populate: { path: "owner", select: "username avatar" },
       sort: { createdAt: -1 },
     });
 
     return res.status(200).json(
-      new Apiresponse({
-        status: 200,
-        result,
-        message: "posts fetched succesfully",
-      }),
+      new Apiresponse(200, result, "posts fetched successfully"), // Correct: Positional arguments
     );
   }
 
@@ -86,12 +83,7 @@ const getAllPost = Asynchandler(async (req, res) => {
         queryVector: req.user.userIntrestVector,
         numCandidates: 100,
         limit: 100,
-      },
-    },
-
-    {
-      $match: {
-        isPublished: false,
+        filter: { isPublished: { $eq: true } },
       },
     },
 
@@ -107,7 +99,6 @@ const getAllPost = Asynchandler(async (req, res) => {
             $project: {
               username: 1,
               avatar: 1,
-               
             },
           },
         ],
@@ -121,25 +112,25 @@ const getAllPost = Asynchandler(async (req, res) => {
 
   const result = await paginateAggregate(Post, smartFeed, page, limit);
   //if user is logged in but dont have any inrest or interaction then only latest posts re recommended
-  const filter = { isPublished: false };
+  const filter = { isPublished: true };
   if (result.data.length === 0) {
     const result = await paginateQuery(Post, filter, page, limit, {
       populate: { path: "owner", select: "username avatar" },
       sort: { createdAt: -1 },
     });
-    return res.status(200).json(
-      new Apiresponse({
-        status: 200,
-        result,
-        message: "posts fetched successfully",
-      }),
-    );
+    return res
+      .status(200)
+      .json(new Apiresponse(200, result, "posts fetched successfully"));
   }
-  return res.status(200).json({
-    status: 200,
-    result,
-    message: "user preference related post fetched successfully",
-  });
+  return res
+    .status(200)
+    .json(
+      new Apiresponse(
+        200,
+        result,
+        "user preference related post fetched successfully",
+      ),
+    );
 });
 
 //it converts title in to slug then find post and return it
@@ -238,11 +229,11 @@ const updatePost = Asynchandler(async (req, res) => {
   if (content) {
     findPost.content = content;
   }
-  
-  console.log('does file is coming',req.file)
-  
+
+  console.log("does file is coming", req.file);
+
   console.log("File received:", req.file); // If this is undefined, it's a Multer/Postman issue
-  
+
   if (req.file) {
     const existingImage = findPost.mediaImage;
     console.log("Old Image URL:", existingImage);
@@ -324,14 +315,18 @@ const togglePostStatus = Asynchandler(async (req, res) => {
   if (!post) {
     throw new Apierror(404, "post not found");
   }
-  
+
   if (!post.content || post.content.trim().length < 300) {
-    throw new Apierror(400, "Content is too short to publish. Add a few more words!");
+    throw new Apierror(
+      400,
+      "Content is too short to publish. Add a few more words!",
+    );
   }
 
-  
   if (!post.mediaImage) {
-    console.log("Hey, adding an image increases engagement by 40%! Are you sure you want to publish without one?");
+    console.log(
+      "Hey, adding an image increases engagement by 40%! Are you sure you want to publish without one?",
+    );
   }
   if (post.owner.toString() !== req.user._id.toString()) {
     throw new Apierror(403, "unauthorize to perform this request");
@@ -357,7 +352,7 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
   }
 
   const vector = await generateEmbedding(query);
-  
+
   const pipeline = await Post.aggregate([
     {
       $vectorSearch: {
@@ -382,8 +377,8 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
       $unwind: "$owner",
     },
     {
-      $addFields: 
-        {searchScore: { $meta: "vectorSearchScore" },
+      $addFields: {
+        searchScore: { $meta: "vectorSearchScore" },
         viewsCount: {
           $size: {
             $ifNull: ["$views", []],
@@ -391,9 +386,9 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
         },
       },
     },
-    
+
     {
-      $sort: { searchScore: -1 } // CRITICAL FIX: Lock Rome at the top based on AI score
+      $sort: { searchScore: -1 }, // CRITICAL FIX: Lock Rome at the top based on AI score
     },
 
     {
@@ -401,20 +396,15 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
         "owner.password": 0,
         "owner.refreshToken": 0,
         contentVector: 0,
-        
       },
     },
   ]);
 
   const result = await paginateAggregate(Post, pipeline, page, limit);
 
-  return res.status(200).json(
-    new Apiresponse(
-      200,
-      result,
-      "top Post recommended successfully",
-    ),
-  );
+  return res
+    .status(200)
+    .json(new Apiresponse(200, result, "top Post recommended successfully"));
 });
 
 const viewsCount = Asynchandler(async (req, res) => {
@@ -438,11 +428,11 @@ const viewsCount = Asynchandler(async (req, res) => {
 
   return res.status(200).json(
     new Apiresponse(
-        200, 
-        updatePost.views, // Use the actual field name from your Schema
-        "views updated successfully"
-    )
-);
+      200,
+      updatePost.views, // Use the actual field name from your Schema
+      "views updated successfully",
+    ),
+  );
 });
 
 export {

@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import {rateLimit} from "express-rate-limit"
 import express from 'express';
 import "./Config/Passport.js";
+import multer from "multer";
 
 const app = express()
 
