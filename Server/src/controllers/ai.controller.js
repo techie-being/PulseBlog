@@ -18,7 +18,7 @@ const generateAiSummary = Asynchandler(async (req, res) => {
 
   const response = await client.chat.completions.create({
     model: "gpt-4o",
-    response_format: { tyre: "json_object" },
+    response_format: { type: "json_object" },
     messages: [
       {
         role: "system",
@@ -42,7 +42,11 @@ const generateAiSummary = Asynchandler(async (req, res) => {
   });
 
   const generatedAiSummary = JSON.parse(response.choices[0].message.content);
-
+  
+  if(!generatedAiSummary){
+    throw new Apierror(400,"summary is not generated from ai");
+  }
+  
   return res.status(200).json(
     new Apiresponse(200, generatedAiSummary, "Generated data successfully")
   );

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import EditorComponent from "../components/Editor.component";
 import axiosInstance from "../api/axiosInstance";
@@ -8,11 +8,10 @@ import toast, { Toaster } from "react-hot-toast";
 const WritePage = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
-  const fileRef = useRef(null); // Added missing ref
+  const fileRef = useRef(null); 
   const { isLoggedIn } = useSelector((state) => state.auth);
 
-  const fileRef = useRef(null);
-
+  // --- STATE ---
   const [title, setTitle] = useState("");
   const [content, setContent] = useState(null);
   const [thumbnail, setThumbnail] = useState(null);
@@ -22,51 +21,54 @@ const WritePage = () => {
   const [isFetching, setIsFetching] = useState(true);
   const [isAiLoading, setIsAiLoading] = useState(false);
 
+  // --- AI ASSISTANT STATE ---
+  const [showAiAssistant, setShowAiAssistant] = useState(false);
+  const [activeAiTab, setActiveAiTab] = useState("polish"); 
+  const [aiWorking, setAiWorking] = useState(false);
+  const [aiData, setAiData] = useState({
+    polish: null,
+    summary: null,
+    assets: null,
+  });
+
   useEffect(() => {
     const fetchPost = async () => {
-        try {
-            // Start of your try block
-            const res = await axiosInstance.get(`/posts/get-post/${postId}`);
-            const responseData = res.data?.data || res.data;
-            const post = responseData.post || responseData;
+      try {
+        const res = await axiosInstance.get(`/posts/get-post/${postId}`);
+        const responseData = res.data?.data || res.data;
+        const post = responseData.post || responseData;
 
-            setTitle(post.title || "");
-            setTags(post.tags?.join(", ") || "");
-            setThumbnailPreview(post.mediaImage || "");
+        setTitle(post.title || "");
+        setTags(Array.isArray(post.tags) ? post.tags.join(", ") : post.tags || "");
+        setThumbnailPreview(post.mediaImage || "");
 
-            // Parsing content for the editor
-            const parsedContent =
-                typeof post.content === "string"
-                    ? JSON.parse(post.content)
-                    : post.content;
-            
-            setContent(parsedContent);
-
-        } catch (err) {
-            // This CATCH block was likely missing or malformed
-            toast.error(err?.response?.data?.message || "Failed to fetch post details");
-            navigate("/dashboard");
-        } finally {
-            // This FINALLY block ensures loading states are updated
-            setIsFetching(false);
-        }
+        const parsedContent = typeof post.content === "string" 
+            ? JSON.parse(post.content) 
+            : post.content;
+        setContent(parsedContent);
+      } catch (err) {
+        toast.error(err?.response?.data?.message || "Failed to fetch post details");
+        navigate("/dashboard");
+      } finally {
+        setIsFetching(false);
+      }
     };
 
     if (isLoggedIn) {
-        if (postId) {
-            fetchPost();
-        } else {
-            setIsFetching(false);
-        }
+      if (postId) {
+        fetchPost();
+      } else {
+        setIsFetching(false);
+      }
+    } else {
+        navigate("/signin"); // Safety redirect
     }
-}, [postId, isLoggedIn, navigate]);
+  }, [postId, isLoggedIn, navigate]);
 
   const handleThumbnailChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 100 * 1024) {
-      return toast.error("Image must be under 100KB");
-    }
+    if (file.size > 100 * 1024) return toast.error("Image must be under 100KB");
     setThumbnail(file);
     setThumbnailPreview(URL.createObjectURL(file));
   };
@@ -75,9 +77,8 @@ const WritePage = () => {
     if (!title.trim()) return toast.error("Enter a title first!");
     setIsAiLoading(true);
     try {
-      // Fixed: Using POST and sending 'selectedText' as expected by backend
       const res = await axiosInstance.post(`/ai/simplify`, {
-        selectedText: title,
+        selectedText: title, // Matches your backend implementation
       });
       const result = res.data?.data?.simplified_explanation;
       if (result) {
@@ -91,47 +92,36 @@ const WritePage = () => {
     }
   };
 
-  // --- HELPER: EXTRACT TEXT FROM EDITORJS JSON ---
   const extractTextFromEditor = () => {
-    if (!content) return "";
-    const blocks = content.blocks || content;
-    if (!Array.isArray(blocks)) return "";
-
-    return blocks
+    if (!content || !content.blocks) return "";
+    return content.blocks
       .map((block) => {
         if (block.type === "paragraph" || block.type === "header") return block.data.text || "";
         if (block.type === "list") return (block.data.items || []).join(". ");
         return "";
       })
       .join("\n")
-      .replace(/<[^>]*>?/gm, ""); // Strips HTML tags EditorJS leaves behind like <b>
+      .replace(/<[^>]*>?/gm, ""); 
   };
 
-  // --- NEW AI ASSISTANT FUNCTION ---
   const runAiFeature = async (feature) => {
     const plainText = extractTextFromEditor();
-    
-    if (!plainText || plainText.length < 50) {
-      return toast.error("Please write a bit more content first!");
-    }
+    if (!plainText || plainText.length < 50) return toast.error("Please write more content first!");
 
     setAiWorking(true);
     try {
       let res;
       if (feature === "polish") {
-        // Backend expects `draftContent` for Polish
         res = await axiosInstance.post("/ai/polished-draft", { draftContent: plainText });
         setAiData((prev) => ({ ...prev, polish: res.data.data }));
       } else if (feature === "summary") {
-        // Backend expects `content` for Summary
         res = await axiosInstance.post("/ai/ai-summary", { content: plainText });
         setAiData((prev) => ({ ...prev, summary: res.data.data }));
       } else if (feature === "assets") {
-        // Backend expects `content` for Assets
         res = await axiosInstance.post("/ai/asset-generator", { content: plainText });
         setAiData((prev) => ({ ...prev, assets: res.data.data }));
       }
-      toast.success(`${feature} generated successfully!`);
+      toast.success(`${feature} generated!`);
     } catch (err) {
       toast.error(err?.response?.data?.message || `Failed to run ${feature}`);
     } finally {
@@ -176,29 +166,88 @@ const WritePage = () => {
     );
   }
 
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-2xl font-inter font-bold">
-            {postId ? "Edit Post" : "New Post"}
-          </h1>
-        </div>
+  return (
+    <section>
+      <Toaster />
 
-        <div
-          className="w-full aspect-video bg-grey rounded-xl mb-6 cursor-pointer overflow-hidden flex items-center justify-center relative group"
-          onClick={() => fileRef.current.click()}
-        >
+      {/* AI MODAL */}
+      {showAiAssistant && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl relative">
+            <div className="p-6 border-b border-grey flex justify-between items-center bg-purple/5">
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                <i className="fi fi-rr-magic-wand text-purple"></i> AI Co-Pilot
+              </h2>
+              <button onClick={() => setShowAiAssistant(false)} className="hover:text-red transition">
+                <i className="fi fi-rr-cross-small text-2xl"></i>
+              </button>
+            </div>
+
+            <div className="flex px-6 border-b border-grey">
+              {['polish', 'summary', 'assets'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveAiTab(tab)}
+                  className={`py-4 px-6 capitalize ${activeAiTab === tab ? "border-b-2 border-purple text-purple" : "text-dark-grey"}`}
+                >
+                  {tab === 'assets' ? 'Social Assets' : tab}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1">
+              <button onClick={() => runAiFeature(activeAiTab)} disabled={aiWorking} className="btn-dark mb-8">
+                {aiWorking ? "Generating..." : `Generate ${activeAiTab}`}
+              </button>
+
+              {activeAiTab === "polish" && aiData.polish && (
+                <div className="space-y-4">
+                  {aiData.polish.suggestions?.map((item, i) => (
+                    <div key={i} className="bg-grey/30 p-4 rounded-lg border border-grey">
+                      <p className="text-red-500 line-through text-sm">Original: {item.original_sentence}</p>
+                      <p className="text-green-600 font-medium">Improved: {item.improved_sentence}</p>
+                      <p className="text-xs text-dark-grey mt-2 italic">{item.explanation}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {activeAiTab === "summary" && aiData.summary && (
+                <div className="space-y-4">
+                  <p className="bg-grey/30 p-4 rounded-lg border border-grey">{aiData.summary.summary}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {aiData.summary.headings?.map((h, i) => <span key={i} className="tag">{h}</span>)}
+                  </div>
+                </div>
+              )}
+
+              {activeAiTab === "assets" && aiData.assets && (
+                <div className="space-y-6">
+                  <div className="bg-grey/30 p-4 rounded-lg">
+                    <h4 className="font-bold text-[#1DA1F2] mb-2">Twitter Thread</h4>
+                    {aiData.assets.twitter_thread?.map((t, i) => <p key={i} className="mb-2 text-sm">{i+1}/ {t}</p>)}
+                  </div>
+                  <div className="bg-grey/30 p-4 rounded-lg">
+                    <h4 className="font-bold text-[#0A66C2] mb-2">LinkedIn Post</h4>
+                    <p className="text-sm whitespace-pre-wrap">{aiData.assets.linkedin_post}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-8">{postId ? "Edit Post" : "New Post"}</h1>
+
+        <div className="w-full aspect-video bg-grey rounded-xl mb-6 cursor-pointer overflow-hidden relative group" onClick={() => fileRef.current.click()}>
           {thumbnailPreview ? (
-            <>
-              <img src={thumbnailPreview} alt="thumbnail" className="w-full h-full object-cover group-hover:opacity-80 transition" />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition bg-black/30">
-                <p className="text-white font-medium">Change Thumbnail</p>
-              </div>
-            </>
+            <img src={thumbnailPreview} className="w-full h-full object-cover" />
           ) : (
-            <div className="text-center text-dark-grey">
+            <div className="text-center text-dark-grey p-10">
               <i className="fi fi-rr-picture text-4xl block mb-2" />
-              <p>Click to add thumbnail</p>
-              <p className="text-sm mt-1">Max 100KB — Cloudinary upload</p>
+              <p>Add Thumbnail (Max 100KB)</p>
             </div>
           )}
         </div>
@@ -210,34 +259,26 @@ const WritePage = () => {
             placeholder="Post Title..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full text-4xl font-gelasio font-bold outline-none bg-transparent placeholder:text-grey border-b border-grey pb-4 pr-[140px]"
+            className="w-full text-4xl font-bold outline-none border-b border-grey pb-4 pr-[140px]"
           />
-          <button
-            onClick={handlePolishTitle}
-            disabled={isAiLoading || !title.trim()}
-            className="absolute right-0 bottom-4 text-sm btn-light py-2 px-4 disabled:opacity-50 flex items-center gap-2 rounded-full transition-all"
-          >
-            <i className="fi fi-rr-magic-wand text-purple"></i>
-            {isAiLoading ? "Polishing..." : "AI Polish"}
+          <button onClick={handlePolishTitle} disabled={isAiLoading || !title.trim()} className="absolute right-0 bottom-4 btn-light py-2 px-4 text-sm rounded-full">
+            {isAiLoading ? "Polishing..." : "AI Polish ✨"}
           </button>
         </div>
 
-        <input
-          type="text"
-          placeholder="Tags (comma separated)"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          className="input-box mb-6"
-        />
+        <input type="text" placeholder="Tags (comma separated)" value={tags} onChange={(e) => setTags(e.target.value)} className="input-box mb-6" />
 
         <EditorComponent initialContent={content} onChange={setContent} />
 
-        <div className="flex gap-3 justify-end mt-8">
-          <button onClick={() => handlePublish(false)} disabled={loading} className="btn-light py-2 px-5 disabled:opacity-50">
-            {postId ? "Save as Draft" : "Save Draft"}
+        <div className="flex gap-3 justify-end mt-8 border-t border-grey pt-6">
+          <button onClick={() => setShowAiAssistant(true)} className="btn-light text-purple mr-auto">
+            <i className="fi fi-rr-magic-wand"></i> AI Co-Pilot
           </button>
-          <button onClick={() => handlePublish(true)} disabled={loading} className="btn-dark py-2 px-5 disabled:opacity-50">
-            {loading ? "Processing..." : (postId ? "Publish Updates" : "Publish")}
+          <button onClick={() => handlePublish(false)} disabled={loading} className="btn-light">
+            {postId ? "Save Draft" : "Save Draft"}
+          </button>
+          <button onClick={() => handlePublish(true)} disabled={loading} className="btn-dark">
+            {loading ? "Processing..." : (postId ? "Update Post" : "Publish")}
           </button>
         </div>
       </div>

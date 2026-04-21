@@ -1,29 +1,20 @@
 import mongoose,{Schema} from "mongoose";
 import { User } from "./user.models.js";
 
-const likeSchema = new Schema(
-    {
-        likedBy:{
-            type:Schema.Types.ObjectId,
-            ref:"User",
-            
-        },
-        postId:{
-            type:Schema.Types.ObjectId,
-            ref:"post",
-        }
-
+const likeSchema = new Schema({
+    postId: {
+        type: Schema.Types.ObjectId,
+        ref: "Post",
+        required: true
     },
-    {timestamps:true}
-)
-.index(
-    {
-       postId:1,
-       likerUserId:1,
-    },
-    {
-        unique:true
+    likedBy: { // Make sure this is 'likedBy' to match your data
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true
     }
-)
+}, { timestamps: true });
 
-export const Like = mongoose.model("Like",likeSchema)
+// This ensures Mongoose handles the unique constraint correctly
+likeSchema.index({ postId: 1, likedBy: 1 }, { unique: true });
+
+export const Like = mongoose.model("Like", likeSchema);

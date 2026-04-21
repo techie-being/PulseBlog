@@ -203,7 +203,7 @@ const forgotPassword = Asynchandler(async (req, res) => {
   await user.save({ validateBeforeSave: false });
 
   // 4. Send Email
-  const resetUrl = `${req.protocol}://${req.get("host")}/api/v1/users/reset-password/${resetToken}`;
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
   const message = `You requested a password reset. Click the link to reset your password: \n\n ${resetUrl} \n\n If you didn't request this, please ignore this email.`;
 
   try {
