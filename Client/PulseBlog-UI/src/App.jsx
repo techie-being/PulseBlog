@@ -10,7 +10,8 @@ import ProfilePage from "./pages/Profile.page";
 import SearchPage from "./pages/Search.page";
 import OnboardingPage from "./pages/Onboarding.page";
 import SettingsPage from "./pages/Settings.page";
-
+import LoginSuccess from "./pages/LoginSuccess.page";
+import LoginFailed from "./pages/LoginFailed.page";
 
 const App = () => {
     return (
@@ -22,7 +23,10 @@ const App = () => {
                     <Route path="signin"       element={<UserAuthForm type="sign-in" />} />
                     <Route path="signup"       element={<UserAuthForm type="sign-up" />} />
                     
-                    {/* Both routes render the same component */}
+                    {/* Add the Google Auth Redirect Routes */}
+                    <Route path="login-success" element={<LoginSuccess />} />
+                    <Route path="login-failed"  element={<LoginFailed />} />
+                    
                     <Route path="write"        element={<WritePage />} />
                     <Route path="edit/:postId" element={<WritePage />} />
                     
