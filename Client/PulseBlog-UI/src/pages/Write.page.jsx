@@ -11,6 +11,8 @@ const WritePage = () => {
   const fileRef = useRef(null); // Added missing ref
   const { isLoggedIn } = useSelector((state) => state.auth);
 
+  const fileRef = useRef(null);
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState(null);
   const [thumbnail, setThumbnail] = useState(null);
@@ -89,6 +91,54 @@ const WritePage = () => {
     }
   };
 
+  // --- HELPER: EXTRACT TEXT FROM EDITORJS JSON ---
+  const extractTextFromEditor = () => {
+    if (!content) return "";
+    const blocks = content.blocks || content;
+    if (!Array.isArray(blocks)) return "";
+
+    return blocks
+      .map((block) => {
+        if (block.type === "paragraph" || block.type === "header") return block.data.text || "";
+        if (block.type === "list") return (block.data.items || []).join(". ");
+        return "";
+      })
+      .join("\n")
+      .replace(/<[^>]*>?/gm, ""); // Strips HTML tags EditorJS leaves behind like <b>
+  };
+
+  // --- NEW AI ASSISTANT FUNCTION ---
+  const runAiFeature = async (feature) => {
+    const plainText = extractTextFromEditor();
+    
+    if (!plainText || plainText.length < 50) {
+      return toast.error("Please write a bit more content first!");
+    }
+
+    setAiWorking(true);
+    try {
+      let res;
+      if (feature === "polish") {
+        // Backend expects `draftContent` for Polish
+        res = await axiosInstance.post("/ai/polished-draft", { draftContent: plainText });
+        setAiData((prev) => ({ ...prev, polish: res.data.data }));
+      } else if (feature === "summary") {
+        // Backend expects `content` for Summary
+        res = await axiosInstance.post("/ai/ai-summary", { content: plainText });
+        setAiData((prev) => ({ ...prev, summary: res.data.data }));
+      } else if (feature === "assets") {
+        // Backend expects `content` for Assets
+        res = await axiosInstance.post("/ai/asset-generator", { content: plainText });
+        setAiData((prev) => ({ ...prev, assets: res.data.data }));
+      }
+      toast.success(`${feature} generated successfully!`);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || `Failed to run ${feature}`);
+    } finally {
+      setAiWorking(false);
+    }
+  };
+
   const handlePublish = async (isPublished) => {
     if (!title.trim()) return toast.error("Title is required");
     if (!content) return toast.error("Write something first!");
@@ -126,9 +176,6 @@ const WritePage = () => {
     );
   }
 
-  return (
-    <section>
-      <Toaster />
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-inter font-bold">
@@ -170,7 +217,7 @@ const WritePage = () => {
             disabled={isAiLoading || !title.trim()}
             className="absolute right-0 bottom-4 text-sm btn-light py-2 px-4 disabled:opacity-50 flex items-center gap-2 rounded-full transition-all"
           >
-            <i className="fi fi-rr-magic-wand text-purple-500"></i>
+            <i className="fi fi-rr-magic-wand text-purple"></i>
             {isAiLoading ? "Polishing..." : "AI Polish"}
           </button>
         </div>
