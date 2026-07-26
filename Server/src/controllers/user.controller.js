@@ -133,17 +133,20 @@ const setupAccount = Asynchandler(async (req, res) => {
 
 const userLogin = Asynchandler(async (req, res) => {
   const { email, password } = req.body;
+  
 
   if ([email, password].some((field) => field?.trim() === "")) {
     throw new Apierror(400, "All fields are mandatory");
   }
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email }).select("+password");
 
   if (!user) {
     throw new Apierror(404, "User does not exist");
   }
-
+  
+  console.log("Entered Password:", password);
+  console.log("Stored Password:", user.password);
   const verifyPassword = await user.isPasswordCorrect(password);
 
   if (!verifyPassword) {
@@ -197,15 +200,17 @@ const forgotPassword = Asynchandler(async (req, res) => {
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
-    
+  console.log("forgot passwordtoken:",user.forgotPasswordToken);
   user.forgotPasswordTokenExpiry = Date.now() + 15 * 60 * 1000; // 15 Mins
 
   await user.save({ validateBeforeSave: false });
 
   // 4. Send Email
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+  console.log("reseturl:",resetUrl )
   const message = `You requested a password reset. Click the link to reset your password: \n\n ${resetUrl} \n\n If you didn't request this, please ignore this email.`;
-
+  console.log("message:",message )
+  
   try {
     await sendEmail({
       email: user.email,
@@ -217,7 +222,10 @@ const forgotPassword = Asynchandler(async (req, res) => {
       .status(200)
       .json(new Apiresponse(200, {}, "Reset link sent to email"));
 
-  } catch (error) {
+  } 
+  catch (error) 
+  {
+    console.error("Nodemailer Error:", error);
     // If email fails, clean up the fields in DB
     user.forgotPasswordToken = undefined;
     user.forgotPasswordTokenExpiry = undefined;

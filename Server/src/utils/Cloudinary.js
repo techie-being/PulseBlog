@@ -21,7 +21,7 @@ const cloudinaryUploader = async (localFilePath)=>{
         )
         //his response url will go to controller that calls it based on
         //  response he decides to store it in db or not.
-        console.log("returned url from cloudinary after uploading image",response)
+        // console.log("returned url from cloudinary after uploading image",response)
         fs.unlinkSync(localFilePath);
         return response
         

@@ -10,32 +10,37 @@ const blockToxicity = Asynchandler(async (req, res, next) => {
     throw new Apierror(400, "Empty comment is not allowed");
   }
 
-  // 1. Send to AI
-  const response = await client.chat.completions.create({
-    model: "Phi-4",
-    response_format: { type: "json_object" },
-    messages: [
-      {
-        role: "system",
-        content: `
-        You are a strict, impartial community moderator for a blog. Analyze the provided user comment. 
-        Your job is to determine if the comment contains hate speech, severe profanity, harassment, or blatant spam/bot behavior. Disagreement or constructive criticism is NOT toxic.
-        You MUST return a valid JSON object in this exact format:
-        {
-          "isToxic": true or false,
-          "reason": "If toxic, provide a 1-sentence explanation. If false, output null."
-        }
-        `
-      },
-      {
-        role: "user",
-        content: `Here is the user comment to analyze: ${commentText}`,
-      },
-    ],
-    temperature: 0.2,
-  });
+  const response = await client.models.generateContent({
+  model: "gemini-2.5-flash-lite",
 
-  const analyzedComment = JSON.parse(response.choices[0].message.content);
+  contents: `
+    You are a strict, impartial community moderator for a blog.
+
+    Analyze the provided user comment.
+
+    Determine whether the comment contains:
+    - Hate speech
+    - Severe profanity
+    - Harassment
+    - Blatant spam or bot behavior
+
+    Do NOT mark constructive criticism, disagreement, or polite negative feedback as toxic.
+    Return ONLY valid JSON.
+    Do not wrap the JSON in markdown or code fences.
+{
+  "isToxic": true,
+  "reason": "If toxic, provide a one-sentence explanation. Otherwise use null."
+}
+
+  User Comment:${commentText}`,
+
+  config: {
+    temperature: 0.2,
+    responseMimeType: "application/json",
+  },
+});
+  const text = response.text;
+  const analyzedComment = JSON.parse(text);
 
   // 2. Block if toxic
   if (analyzedComment.isToxic === true) {

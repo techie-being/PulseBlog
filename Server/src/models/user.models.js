@@ -41,16 +41,18 @@ const userSchema = new Schema(
             trim:true,
         },
         
-        password:{
-            type:String,
-            required:true,
+        password: {
+            type: String,
+        // Remove 'required: true' or make it conditional
+            required: function() {
+            // Only require a password if they aren't using a social provider
+                return !this.provider || this.provider === 'local';
+            }
         },
-         
-        // it stores users used with method for registration or login
-        provider:{
-            type:String,
-            enum:['local','google'],
-            default:'local',
+
+        provider: {
+            type: String,
+            default: 'local' // Set default as 'local' for normal registration
         },
 
         // it store a unique id for user provide by google

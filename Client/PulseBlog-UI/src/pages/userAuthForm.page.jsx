@@ -19,21 +19,20 @@ const UserAuthForm = ({ type }) => {
         password: "",
     });
 
-    if (isLoggedIn) {
+    // CHANGE 1: Prevent automatic redirect to "/" if the user is in the middle of signing up
+    if (isLoggedIn && type !== "sign-up") {
         return <Navigate to="/" replace />;
     }
 
     const handleChange = (e) => {
-        // Clear any previous Redux errors when the user starts typing again
         if (error) dispatch(loginFailure(null)); 
-        
         setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // 1. Basic Field Validation using Redux
+        // Validation logic
         if (!formData.email || !formData.password) {
             return dispatch(loginFailure("Email and password are required."));
         }
@@ -41,16 +40,13 @@ const UserAuthForm = ({ type }) => {
             return dispatch(loginFailure("Username is required."));
         }
 
-        // 2. Strict Password Validation (ONLY for Sign-Up) using Regex
         if (type === "sign-up") {
             const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
-            
             if (!passwordRegex.test(formData.password)) {
                 return dispatch(loginFailure("Password must be at least 8 characters long and include an uppercase letter, a number, and a special character."));
             }
         }
 
-        // If all checks pass, start the API call
         dispatch(loginStart());
 
         try {
@@ -61,11 +57,14 @@ const UserAuthForm = ({ type }) => {
             
             dispatch(loginSuccess(userData));
 
-            const isNewUser = userData?.isNewUser ?? true;
-            
-            // We keep the toast here just for the final success celebration
             toast.success(type === "sign-in" ? "Welcome back!" : "Account created!");
-            navigate(isNewUser && type === "sign-up" ? "/onboarding" : "/");
+
+            // CHANGE 2: Explicitly redirect to /onboarding for sign-up, otherwise root
+            if (type === "sign-up") {
+                navigate("/onboarding");
+            } else {
+                navigate("/");
+            }
             
         } catch (err) {
             const message = err?.response?.data?.message || "Something went wrong";
@@ -114,7 +113,6 @@ const UserAuthForm = ({ type }) => {
                     onChange={handleChange}
                 />
 
-                {/* --- FORGOT PASSWORD LINK START --- */}
                 {type === "sign-in" && (
                     <div className="w-full flex justify-end mt-2 mb-4">
                         <Link 
@@ -125,9 +123,7 @@ const UserAuthForm = ({ type }) => {
                         </Link>
                     </div>
                 )}
-                {/* --- FORGOT PASSWORD LINK END --- */}
 
-                {/* Redux Error Display Area */}
                 {error && (
                     <p className="text-red-500 text-sm mb-4 text-center font-medium bg-red-50 p-2 rounded-md">
                         {error}

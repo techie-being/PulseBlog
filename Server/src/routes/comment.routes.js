@@ -12,7 +12,7 @@ from "../controllers/comment.controller.js";
 
 const router = Router()
 
-router.route("/comment/:postId").post(verifyJwt,userComment)
+router.route("/comment/:postId").post(verifyJwt,blockToxicity,userComment)
 router.route("/delete-comment/:commentId").post(verifyJwt,deleteComment)
 router.route("/update-comment/:commentId").patch(verifyJwt,updateComment)
 router.route("/get-comments/:postId").post(verifyJwt,getPostComments)
