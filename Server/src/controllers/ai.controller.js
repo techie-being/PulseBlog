@@ -2,7 +2,7 @@ import { Asynchandler } from "../utils/Asynchandler.js";
 import { Apierror } from "../utils/Apierror.js";
 import { Apiresponse } from "../utils/Apiresponse.js";
 import { client } from "../Config/ai.client.js";
-
+import editorJsToText from "../utils/editorJsToText.js";
 import { Post } from "../models/post.models.js";
 
 //run before create post
@@ -128,41 +128,7 @@ const polishDraft = Asynchandler(async (req, res) => {
     }
   }
 
-  const formattedBlocks = content.blocks
-    .map((block, index) => {
-      switch (block.type) {
-        case "header":
-          return `[BLOCK ${index}]
-Heading:
-${block.data.text}`;
-
-        case "paragraph":
-          return `[BLOCK ${index}]
-Paragraph:
-${block.data.text}`;
-
-        case "list":
-          return `[BLOCK ${index}]
-List:
-${block.data.items.join("\n")}`;
-
-        case "quote":
-          return `[BLOCK ${index}]
-Quote:
-${block.data.text}`;
-
-        case "code":
-          return `[BLOCK ${index}]
-Code:
-${block.data.code}`;
-
-        default:
-          return "";
-      }
-    })
-    .filter(Boolean)
-    .join("\n\n");
-
+  const formattedBlocks = editorJsToText(content);
   try {
     console.time("polish");
     console.log("1. Controller Started");
@@ -271,13 +237,11 @@ ${formattedBlocks}
 
     console.timeEnd("polish");
 
-    return res.status(200).json(
-      new Apiresponse(
-        200,
-        polishedData,
-        "Polished data sent successfully"
-      )
-    );
+    return res
+      .status(200)
+      .json(
+        new Apiresponse(200, polishedData, "Polished data sent successfully"),
+      );
   } catch (error) {
     console.error("========== POLISH ERROR ==========");
     console.error(error);
@@ -291,74 +255,147 @@ ${formattedBlocks}
 });
 
 const assetGenerator = Asynchandler(async (req, res) => {
-  //changes
-  const findpost = await Post.findById(postId);
-  if (!findpost) {
-    throw new Apierror(404, "post not found, create one ");
-  }
+  // CHANGE 1: Receive only postId. We'll fetch the latest post from the database.
+  const { postId } = req.body;
 
-  if (findpost.owner.toString() !== req.user._id.toString()) {
-    throw new Apierror(401, "you are not authorize to use it ");
-  }
-  //changes
-  const { content, postId } = req.body;
-
-  if (!content) {
-    throw new Apierror(400, "Content is required");
+  if (!postId) {
+    throw new Apierror(400, "Post id is required");
   }
 
   const post = await Post.findById(postId);
+
   if (!post) {
-    throw new Apierror(404, "post not found, create one ");
+    throw new Apierror(404, "Post not found");
   }
 
   if (post.owner.toString() !== req.user._id.toString()) {
-    throw new Apierror(401, "you are not authorize to use it");
+    throw new Apierror(401, "You are not authorized to use this feature");
   }
-  //changes
 
-  if (content.length > 30000) {
-    throw new Apierror(400, "Content length is out of bound for free models");
+  // Extract latest title, tags and content from the database
+  const { title, tags, content } = post;
+
+  //  Convert EditorJS blocks into readable plain text
+
+  const formattedBlocks = editorJsToText(content);
+  // CHANGE 4: Check actual content length instead of content.length
+
+  if (formattedBlocks.length > 30000) {
+    throw new Apierror(400, "Content length exceeds free Gemini model limit");
   }
+
+  console.time("asset-generator");
+  console.log("1. Asset generation started");
 
   const response = await client.models.generateContent({
     model: "gemini-2.5-flash",
 
     contents: `
-    You are an expert social media manager and copywriter.
+You are an expert content marketing strategist.
 
-    Read the provided blog post and generate promotional assets to help the author share their work.
+Read the blog and generate promotional assets for multiple platforms.
 
-    Return ONLY valid JSON.
-    Do not wrap the JSON in markdown or code fences.
+Return ONLY valid JSON.
+
+Do NOT use markdown.
+
+Do NOT wrap JSON inside code fences.
+
+Always generate all fields.
+
+Return JSON exactly like this:
 
 {
-  "twitter_thread": [
-    "Tweet 1: A strong hook summarizing the core value.",
-    "Tweet 2: A supporting point or interesting fact from the post.",
-    "Tweet 3: A call-to-action with relevant hashtags linking to the post."
-  ],
-  "linkedin_post": "A professional, engaging 3-4 paragraph post with appropriate emojis and a call-to-action.",
-  "viral_hooks": [
-    "Catchy hook sentence 1",
-    "Catchy hook sentence 2",
-    "Catchy hook sentence 3"
+  "linkedin": {
+    "post": "...",
+    "hashtags": [
+      "#AI",
+      "#Programming"
+    ]
+  },
+
+  "twitter": {
+  "tweet": "A single professional tweet under 300 characters.",
+  "hashtags": [
+    "#Kubernetes",
+    "#DevOps"
   ]
 }
 
-    BlogPost:${content}`,
+  "instagram": {
+    "caption": "...",
+    "hashtags": [
+      "#AI",
+      "#Developer"
+    ]
+  },
+
+  "youtube": {
+    "title": "...",
+    "description": "...",
+    "hashtags": [
+      "#AI",
+      "#Programming"
+    ]
+  },
+
+  "seo": {
+    "metaTitle": "...",
+    "metaDescription": "...",
+    "keywords": [
+      "...",
+      "...",
+      "..."
+    ],
+    "slug": "..."
+  },
+
+  "hooks": [
+    "...",
+    "...",
+    "..."
+  ]
+}
+
+BLOG TITLE
+
+${title}
+
+--------------------------------
+
+BLOG TAGS
+
+${Array.isArray(tags) ? tags.join(", ") : tags}
+
+--------------------------------
+
+BLOG CONTENT
+
+${formattedBlocks}
+`,
+
     config: {
       temperature: 0.7,
       responseMimeType: "application/json",
     },
   });
-  const text = response.text;
-  const generatedAsset = JSON.parse(text);
+
+  console.log("2. Gemini responded");
+
+  // Parse Gemini response
+  const generatedAssets = JSON.parse(response.text);
+
+  console.log("3. JSON parsed");
+  console.timeEnd("asset-generator");
 
   return res
     .status(200)
     .json(
-      new Apiresponse(200, generatedAsset, "social media posts are generated"),
+      new Apiresponse(
+        200,
+        generatedAssets,
+        "Social media assets generated successfully",
+      ),
     );
 });
 
