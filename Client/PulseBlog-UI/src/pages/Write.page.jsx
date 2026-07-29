@@ -4,10 +4,11 @@ import { useSelector } from "react-redux";
 import EditorComponent from "../components/Editor.component";
 import axiosInstance from "../api/axiosInstance";
 import toast, { Toaster } from "react-hot-toast";
-
+import useAssetGenerator from "../hooks/useAssetGenerator";
 import usePolishDraft from "../hooks/usePolishDraft.js";
 import PolishPreviewModal from "../Components/author-ai/PolishPreviewModal.jsx";
 import AIWorkspaceModal from "../Components/author-ai/AIWorkspaceModal.jsx";
+import AssetGeneratorModal from "../Components/author-ai/AssetGeneratorModal";
 
 const WritePage = () => {
   const { postId } = useParams();
@@ -24,6 +25,8 @@ const WritePage = () => {
   const [tags, setTags] = useState("");
   const [publishLoading, setPublishLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
+  const [assets, setAssets] = useState(null);
+  const [openAssetModal, setOpenAssetModal] = useState(false);
 
   //editor
   const editorRef = useRef(null);
@@ -41,6 +44,8 @@ const WritePage = () => {
     setShowPreview,
     runPolish,
   } = usePolishDraft();
+
+  const { generate, loading: assetLoading } = useAssetGenerator();
 
   const handleApplySuggestion = (suggestion) => {
     const updatedContent = structuredClone(content);
@@ -148,6 +153,21 @@ ${block.data.text}`;
     }
   };
 
+  const handleGenerateAssets = async () => {
+    try {
+      const data = await generate(postId);
+
+      setAssets(data); // ✅ Correct
+      setOpenAssetModal(true); // ✅ Correct
+
+      console.log(data);
+
+      setShowAIWorkspace(false);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to generate assets");
+    }
+  };
+
   if (isFetching) {
     return (
       <div className="flex justify-center items-center h-[70vh]">
@@ -252,6 +272,7 @@ ${block.data.text}`;
           open={showAIWorkspace}
           onClose={() => setShowAIWorkspace(false)}
           loading={polishLoading}
+          assetLoading={assetLoading}
           onPolish={() => {
             console.log("STEP 1 - Button clicked");
 
@@ -266,9 +287,9 @@ ${block.data.text}`;
 
             setShowAIWorkspace(false);
           }}
-          onAssets={() => {}}
+          onAssets={handleGenerateAssets}
         />
-        
+
         <PolishPreviewModal
           open={showPreview}
           review={review}
@@ -282,6 +303,12 @@ ${block.data.text}`;
           setTitle={setTitle}
           setTags={setTags}
           onClose={() => setShowPreview(false)}
+        />
+
+        <AssetGeneratorModal
+          open={openAssetModal}
+          assets={assets}
+          onClose={() => setOpenAssetModal(false)}
         />
       </div>
     </section>
