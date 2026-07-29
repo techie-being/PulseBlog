@@ -14,9 +14,9 @@ export const polishDraft = async (blog, postId) => {
   return data.data;
 };
 
-export const generateAssets = async (content) => {
+export const generateAssets = async (postId) => {
     const { data } = await axiosInstance.post("/ai/asset-generator", {
-        content,
+        postId,
     });
 
     return data.data;
