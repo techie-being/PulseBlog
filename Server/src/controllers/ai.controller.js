@@ -20,24 +20,36 @@ const generateAiSummary = Asynchandler(async (req, res) => {
   const response = await client.models.generateContent({
     model: "gemini-2.5-flash",
     contents: `
-    You are an expert blog editor.
- 
-    Analyze the provided blog draft and perform two tasks:
+You are an expert technical educator and content summarizer.
 
-    1. Improve this blog post optmize its wording and grammmar according to needs.
-    2. Generate appropriate, SEO-friendly H2/H3 headings for the different sections. Keep them chronological.
-    Return ONLY valid JSON.
-    Do not wrap the JSON in markdown or code fences
-    Return ONLY valid JSON in this exact format:
+Read the following blog post carefully and generate a concise, easy-to-understand summary that helps readers quickly grasp and remember the key ideas.
+
+Requirements:
+- Do NOT rewrite or improve the original article.
+- Do NOT generate new content beyond what exists in the article.
+- Keep the summary between 120-200 words.
+- Focus only on the most important concepts.
+- Write in clear, simple, professional language.
+- Extract 4-8 key takeaways as short bullet points.
+- Return ONLY valid JSON.
+- Do NOT wrap the JSON in markdown or code fences.
+
+Return JSON in exactly this format:
+
 {
-  "optimized": ".",
-  "headings": [
-    "Heading for Intro/Section 1",
-    "Heading for Section 2",
-    "Heading for Conclusion"
+  "summary": "A concise summary of the article.",
+  "keyTakeaways": [
+    "...",
+    "...",
+    "...",
+    "...",
+    "..."
   ]
 }
-    Draft Content:${content}`,
+
+Blog Content:
+${content}
+`,
     config: {
       temperature: 0.7,
 
