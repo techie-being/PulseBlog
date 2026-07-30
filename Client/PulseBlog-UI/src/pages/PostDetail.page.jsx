@@ -2,20 +2,37 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import toast from "react-hot-toast";
-import axiosInstance from "../api/axiosInstance";
-import BlockRenderer from "../components/BlockRenderer.component";
-import PostCard from "../components/PostCard.component";
-import Comments from "../components/Comments.component";
+import axiosInstance from "../api/axiosInstance.js";
+import BlockRenderer from "../components/BlockRenderer.component.jsx";
+import PostCard from "../components/PostCard.component.jsx";
+import Comments from "../components/Comments.component.jsx";
+import useGenerateSummary from "../hooks/useGenerateSummary.js";
+import SummaryModal from "../Components/user-ai/SummaryModal.jsx";
+import useSimplifyText from "../hooks/useSimplifyText.js";
+import TextSelectionPopup from "../Components/user-ai/TextSelectionPopup.jsx";
+import AskAIModal from "../Components/user-ai/AskAIModal.jsx";
 
 const PostDetail = () => {
   const { postId } = useParams();
   const [post, setPost] = useState(null);
   const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [summaryData, setSummaryData] = useState(null);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
+  const [popupPosition, setPopupPosition] = useState({
+    x: 0,
+    y: 0,
+  });
+  const [showPopup, setShowPopup] = useState(false);
+  const [showAskAI, setShowAskAI] = useState(false);
 
   // State for likes
   const [isLiked, setIsLiked] = useState(false);
   const { isLoggedIn } = useSelector((state) => state.auth);
+
+  const { generate, loading: summaryLoading } = useGenerateSummary();
+  const { askAI, result, loading: aiLoading } = useSimplifyText();
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -77,6 +94,56 @@ const PostDetail = () => {
       toast.error(
         err?.response?.data?.message || "Failed to update like status",
       );
+    }
+  };
+
+  const handleGenerateSummary = async () => {
+    try {
+      const data = await generate(post.content);
+
+      setSummaryData(data);
+
+      setShowSummaryModal(true);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to generate summary");
+    }
+  };
+
+  const handleTextSelection = () => {
+    const selection = window.getSelection();
+    const text = selection.toString().trim();
+
+    if (!text || selection.rangeCount === 0) {
+      setShowPopup(false);
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+
+    setSelectedText(text);
+
+    // Using absolute positioning (with page scroll offsets) so the popup follows the exact document flow 
+    // rather than staying fixed to the viewport window.
+    setPopupPosition({
+      x: rect.left + rect.width / 2 + window.pageXOffset,
+      y: rect.top + window.pageYOffset - 10, // Positioned right above the highlighted text
+    });
+
+    setShowPopup(true);
+  };
+
+  const handleAskAI = async () => {
+    try {
+      await askAI(selectedText);
+
+      setShowPopup(false);
+
+      setShowAskAI(true);
+
+      window.getSelection()?.removeAllRanges();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to simplify text");
     }
   };
 
@@ -159,8 +226,52 @@ const PostDetail = () => {
           </button>
         </div>
 
+        <div className="flex items-center gap-4 my-6">
+          <button
+            onClick={handleGenerateSummary}
+            disabled={summaryLoading}
+            className="group relative inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-gray-900 bg-white border border-gray-300 shadow-md shadow-gray-200/50 hover:bg-gray-50 hover:border-gray-400 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none transition-all duration-300"
+          >
+            {summaryLoading ? (
+              <>
+                {/* Animated Loading Spinner */}
+                <svg
+                  className="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-gray-900"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                <span>Generating...</span>
+              </>
+            ) : (
+              <>
+                <span className="text-xs transition-transform duration-300 group-hover:rotate-12">
+                  ✨
+                </span>
+                <span>Generate Summary</span>
+              </>
+            )}
+          </button>
+        </div>
+
         {/* POST CONTENT */}
-        <BlockRenderer blocks={blocks} />
+        <div onMouseUp={handleTextSelection}>
+          <BlockRenderer blocks={blocks} />
+        </div>
 
         {/* COMMENTS SECTION */}
         <Comments postId={post._id} />
@@ -184,6 +295,26 @@ const PostDetail = () => {
           </div>
         )}
       </div>
+
+      <SummaryModal
+        open={showSummaryModal}
+        data={summaryData}
+        onClose={() => setShowSummaryModal(false)}
+      />
+
+      <TextSelectionPopup
+        visible={showPopup}
+        position={popupPosition}
+        onAskAI={handleAskAI}
+        loading={aiLoading}
+      />
+
+      <AskAIModal
+        open={showAskAI}
+        loading={aiLoading}
+        result={result}
+        onClose={() => setShowAskAI(false)}
+      />
     </section>
   );
 };
