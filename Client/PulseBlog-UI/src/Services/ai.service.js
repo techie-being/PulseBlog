@@ -30,10 +30,10 @@ export const generateSummary = async (content) => {
     return data.data;
 };
 
-export const simplifyText = async (content) => {
-    const { data } = await axiosInstance.post("/ai/simplify", {
-        draftContent: content,
-    });
+export const simplifyText = async (selectedText) => {
+  const { data } = await axiosInstance.post("/ai/simplify", {
+    selectedText,
+  });
 
-    return data.data;
+  return data.data;
 };
