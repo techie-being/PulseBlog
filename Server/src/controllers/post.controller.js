@@ -26,8 +26,8 @@ const createPost = Asynchandler(async (req, res) => {
 
   if (!thumbnail || !thumbnail.url) {
     throw new Apierror(
-      500, 
-      "Image upload failed. Please check your internet connection or image format."
+      500,
+      "Image upload failed. Please check your internet connection or image format.",
     );
   }
 
@@ -44,7 +44,10 @@ const createPost = Asynchandler(async (req, res) => {
   // Handle tags: convert comma-separated string to array
   let tagsArray = [];
   if (tags && typeof tags === "string") {
-    tagsArray = tags.split(",").map(tag => tag.trim()).filter(tag => tag !== "");
+    tagsArray = tags
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter((tag) => tag !== "");
   } else if (Array.isArray(tags)) {
     tagsArray = tags;
   }
@@ -81,9 +84,9 @@ const getAllPost = Asynchandler(async (req, res) => {
       sort: { createdAt: -1 },
     });
 
-    return res.status(200).json(
-      new Apiresponse(200, result, "Posts fetched successfully")
-    );
+    return res
+      .status(200)
+      .json(new Apiresponse(200, result, "Posts fetched successfully"));
   }
 
   const smartFeed = [
@@ -134,13 +137,19 @@ const getAllPost = Asynchandler(async (req, res) => {
       populate: { path: "owner", select: "username avatar" },
       sort: { createdAt: -1 },
     });
-    return res.status(200).json(
-      new Apiresponse(200, result, "Posts fetched successfully")
-    );
+    return res
+      .status(200)
+      .json(new Apiresponse(200, result, "Posts fetched successfully"));
   }
-  return res.status(200).json(
-    new Apiresponse(200, result, "User preference related posts fetched successfully")
-  );
+  return res
+    .status(200)
+    .json(
+      new Apiresponse(
+        200,
+        result,
+        "User preference related posts fetched successfully",
+      ),
+    );
 });
 
 //it converts title in to slug then find post and return it
@@ -267,9 +276,9 @@ const updatePost = Asynchandler(async (req, res) => {
 
   const update = await findPost.save();
 
-  return res.status(200).json(
-    new Apiresponse(200, update, "Post updated successfully")
-  );
+  return res
+    .status(200)
+    .json(new Apiresponse(200, update, "Post updated successfully"));
 });
 
 const getPostByAuthor = Asynchandler(async (req, res) => {
@@ -306,9 +315,9 @@ const getPostByAuthor = Asynchandler(async (req, res) => {
       );
   }
 
-  return res.status(200).json(
-    new Apiresponse(200, result, "All posts fetched successfully")
-  );
+  return res
+    .status(200)
+    .json(new Apiresponse(200, result, "All posts fetched successfully"));
 });
 
 // Toggle status between Published and Draft
@@ -327,20 +336,36 @@ const togglePostStatus = Asynchandler(async (req, res) => {
   // If the user is trying to PUBLISH (changing draft to true)
   if (!post.isPublished) {
     if (!post.content || post.content.length < 50) {
-      throw new Apierror(400, "Content is too short to publish. Add some more details!");
+      throw new Apierror(
+        400,
+        "Content is too short to publish. Add some more details!",
+      );
     }
   }
 
   post.isPublished = !post.isPublished;
   const updatedPost = await post.save();
 
-  return res.status(200).json(
-    new Apiresponse(200, updatedPost, `Post ${updatedPost.isPublished ? 'published' : 'unpublished'} successfully`)
-  );
+  console.log("Saved publish state:", updatedPost.isPublished);
+
+  const verify = await Post.findById(postId);
+  console.log("Database state:", verify.isPublished);
+
+  return res
+    .status(200)
+    .json(
+      new Apiresponse(
+        200,
+        updatedPost,
+        `Post ${updatedPost.isPublished ? "published" : "unpublished"} successfully`,
+      ),
+    );
 });
 
 const searchPostsDiscovery = Asynchandler(async (req, res) => {
+  console.log("=== searchPostsDiscovery HIT ===");
   const { query, page = 1, limit = 10 } = req.query;
+
 
   if (!query) {
     throw new Apierror(400, "Search query is required");
@@ -348,7 +373,7 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
 
   const vector = await generateEmbedding(query);
 
-  const pipeline = await Post.aggregate([
+  const pipeline = [
     {
       $vectorSearch: {
         index: "vector_index",
@@ -359,6 +384,7 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
         filter: { isPublished: { $eq: true } },
       },
     },
+    
 
     {
       $lookup: {
@@ -393,13 +419,21 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
         contentVector: 0,
       },
     },
-  ]);
+  ]
+  console.log("pipeline is array of stages?", pipeline[0])
 
-  const result = await paginateAggregate(Post, pipeline, page, limit);
-
-  return res.status(200).json(
-    new Apiresponse(200, result, "Top posts recommended successfully")
+  console.log(
+    pipeline.map((p) => ({
+      title: p.title,
+      isPublished: p.isPublished,
+    })),
   );
+  
+  const result = await paginateAggregate(Post, pipeline, page, limit);
+  console.log(result.data);
+  return res
+    .status(200)
+    .json(new Apiresponse(200, result, "Top posts recommended successfully"));
 });
 
 const viewsCount = Asynchandler(async (req, res) => {
