@@ -71,14 +71,9 @@ const createPost = Asynchandler(async (req, res) => {
 const getAllPost = Asynchandler(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
 
-  const isColdStart =
-    !req.user ||
-    !req.user.userIntrestVector ||
-    req.user.userIntrestVector.length === 0;
+  const filter = { isPublished: true };
 
-  if (isColdStart) {
-    //this is temporarily set as false due tobakend consistency
-    const filter = { isPublished: true };
+  const latestPosts = async () => {
     const result = await paginateQuery(Post, filter, page, limit, {
       populate: { path: "owner", select: "username avatar" },
       sort: { createdAt: -1 },
@@ -87,32 +82,45 @@ const getAllPost = Asynchandler(async (req, res) => {
     return res
       .status(200)
       .json(new Apiresponse(200, result, "Posts fetched successfully"));
+  };
+
+  // Cold Start Detection
+  const vector = req.user?.userIntrestVector;
+
+  const isColdStart =
+    !req.user ||
+    !Array.isArray(vector) ||
+    vector.length !== 384 ||
+    vector.every((v) => v === 0);
+
+  if (isColdStart) {
+    console.log("Cold start user detected. Returning latest posts.");
+    return latestPosts();
   }
+
+  console.log("Using personalized feed");
 
   const smartFeed = [
     {
       $vectorSearch: {
         index: "vector_index",
         path: "contentVector",
-        queryVector: req.user.userIntrestVector,
+        queryVector: vector,
         numCandidates: 100,
         limit: 100,
       },
     },
-
     {
       $match: {
         isPublished: true,
       },
     },
-
     {
       $lookup: {
         from: "users",
         localField: "owner",
         foreignField: "_id",
         as: "owner",
-
         pipeline: [
           {
             $project: {
@@ -123,33 +131,26 @@ const getAllPost = Asynchandler(async (req, res) => {
         ],
       },
     },
-
     {
       $unwind: "$owner",
     },
   ];
 
   const result = await paginateAggregate(Post, smartFeed, page, limit);
-  //if user is logged in but dont have any inrest or interaction then only latest posts re recommended
-  const filter = { isPublished: true };
+
+  // No vector matches → fallback to latest posts
   if (result.data.length === 0) {
-    const result = await paginateQuery(Post, filter, page, limit, {
-      populate: { path: "owner", select: "username avatar" },
-      sort: { createdAt: -1 },
-    });
-    return res
-      .status(200)
-      .json(new Apiresponse(200, result, "Posts fetched successfully"));
+    console.log("No vector matches found. Returning latest posts.");
+    return latestPosts();
   }
-  return res
-    .status(200)
-    .json(
-      new Apiresponse(
-        200,
-        result,
-        "User preference related posts fetched successfully",
-      ),
-    );
+
+  return res.status(200).json(
+    new Apiresponse(
+      200,
+      result,
+      "User preference related posts fetched successfully"
+    )
+  );
 });
 
 //it converts title in to slug then find post and return it
@@ -366,7 +367,6 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
   console.log("=== searchPostsDiscovery HIT ===");
   const { query, page = 1, limit = 10 } = req.query;
 
-
   if (!query) {
     throw new Apierror(400, "Search query is required");
   }
@@ -384,7 +384,6 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
         filter: { isPublished: { $eq: true } },
       },
     },
-    
 
     {
       $lookup: {
@@ -401,9 +400,7 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
       $addFields: {
         searchScore: { $meta: "vectorSearchScore" },
         viewsCount: {
-          $size: {
-            $ifNull: ["$views", []],
-          },
+          $ifNull: ["$views", 0],
         },
       },
     },
@@ -419,8 +416,8 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
         contentVector: 0,
       },
     },
-  ]
-  console.log("pipeline is array of stages?", pipeline[0])
+  ];
+  console.log("pipeline is array of stages?", pipeline[0]);
 
   console.log(
     pipeline.map((p) => ({
@@ -428,7 +425,7 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
       isPublished: p.isPublished,
     })),
   );
-  
+
   const result = await paginateAggregate(Post, pipeline, page, limit);
   console.log(result.data);
   return res
