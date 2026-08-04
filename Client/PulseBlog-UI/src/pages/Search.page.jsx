@@ -28,6 +28,13 @@ const SearchPage = () => {
     }
   }, [urlQuery]); // This runs every time 'urlQuery' changes
 
+  useEffect(() => {
+    console.log("RESULTS STATE");
+    console.log(results);
+    console.log("Length:", results.length);
+  }, [results]);
+
+
   // Extracted the backend call into its own function
   const fetchSearchResults = async (searchKeyword) => {
     setLoading(true);
@@ -37,11 +44,13 @@ const SearchPage = () => {
         `/posts/search-post?query=${encodeURIComponent(searchKeyword)}&limit=10`,
       );
 
-      console.log("API Response:", res.data.data.data);
+      console.log("Entire Response:", res.data);
 
-      setResults(res.data.data?.data || []);
+      console.log("res.data.data =", res.data.data);
+      console.log("res.data.data.data =", res.data.data?.data);
+      console.log("Is Array?", Array.isArray(res.data.data?.data));
 
-      console.log("Results after set:", res.data.data?.data || []);
+      setResults(res.data.data.data);
     } catch {
       toast.error("Search failed. Try again.");
     } finally {
@@ -61,17 +70,7 @@ const SearchPage = () => {
     // The useEffect above will detect the URL change and automatically run the fetch!
     setSearchParams({ q: query });
   };
-  {!loading &&
-  results.map((post, index) => {
-    console.log("Rendering:", post);
-    return (
-      <PostCard
-        key={post._id}
-        post={post}
-        index={index}
-      />
-    );
-  })}
+  
 
   return (
     <section>
