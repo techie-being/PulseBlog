@@ -26,9 +26,15 @@ const App = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    console.log("🔥 App auth useEffect RUNNING");
+
     const initializeAuth = async () => {
       try {
+        console.log("🔥 Calling current-user...");
+
         const res = await axiosInstance.get("/users/current-user");
+
+        console.log("🔥 Current-user response:", res.data);
 
         const user = res.data.data;
 
