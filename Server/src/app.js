@@ -19,7 +19,7 @@ app.use(cookieParser());
 //for valid request access only pulseblog frontend can talk to this
 // Backend app.js
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: process.env.FRONTEND_URL,
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"] // Add this!
 }));

@@ -12,7 +12,8 @@ import {sendEmail} from "../utils/sendEmail.js";
 const options = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: "Lax",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge: 25 * 24 * 60 * 60 * 1000,
 };
 
 const generateAccessAndRefreshToken = async (userId) => {

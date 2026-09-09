@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Toaster } from "react-hot-toast";
 
 import Navbar from "./components/navbar.component";
@@ -19,11 +19,13 @@ import ResetPassword from "./pages/ResetPassword.page";
 import LoginSuccess from "./pages/LoginSuccess.page";
 import LoginFailed from "./pages/LoginFailed.page";
 
-import { loginSuccess } from "./redux/slices/authSlice";
+import { loginSuccess, logout } from "./redux/slices/authSlice";
+
 import axiosInstance from "./api/axiosInstance";
 
 const App = () => {
   const dispatch = useDispatch();
+  const authInitialized = useSelector((state) => state.auth.authInitialized);
 
   useEffect(() => {
     console.log("🔥 App auth useEffect RUNNING");
@@ -44,12 +46,22 @@ const App = () => {
 
         console.log("Redux loginSuccess dispatched");
       } catch (error) {
-        console.log("Authentication initialization failed:", error);
+        if (error.response?.status === 401) {
+          dispatch(logout());
+        }
+        if (error.response?.status === 500) {
+          console.log("Internal server error", error);
+        }
       }
     };
 
     initializeAuth();
   }, [dispatch]);
+
+  if(!authInitialized){
+    return <div>authentication checking ...</div>;
+  }
+
   return (
     <>
       <Toaster position="top-right" />
