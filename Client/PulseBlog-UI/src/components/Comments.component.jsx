@@ -31,7 +31,7 @@ const Comments = ({ postId }) => {
     try {
       await axiosInstance.post(`/comment/comment/${postId}`, {
         // FIXED: Changed 'content' to 'commentText' to match backend middleware
-        commentText: newComment 
+        commentText: newComment,
       });
       setNewComment("");
       toast.success("Comment added!");
@@ -54,7 +54,12 @@ const Comments = ({ postId }) => {
           placeholder="Write a comment..."
           className="input-box w-full pl-4"
         />
-        <button type="submit" className="btn-dark px-6 py-2">Post</button>
+        <button
+          type="submit"
+          className="btn-dark px-6 py-2 transition-transform duration-100 active:scale-95"
+        >
+          Post
+        </button>
       </form>
 
       <div className="space-y-6">

@@ -127,7 +127,7 @@ const SettingsPage = () => {
                             disabled={loading}
                             className="btn-dark mt-6 px-10 w-full md:w-auto"
                         >
-                            {loading ? "Saving..." : "Save Changes"}
+                            {loading ? "Saving..." : "Saved"}
                         </button>
                     </div>
                 </form>
