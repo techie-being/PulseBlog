@@ -19,7 +19,7 @@ const refreshAccessToken = () => {
         {},
         {
           withCredentials: true,
-        }
+        },
       )
       .finally(() => {
         // Refresh operation is finished.
@@ -30,7 +30,6 @@ const refreshAccessToken = () => {
   return refreshPromise;
 };
 
-
 // Response interceptor
 axiosInstance.interceptors.response.use(
   // Successful response
@@ -40,43 +39,38 @@ axiosInstance.interceptors.response.use(
 
   // Failed response
   async (error) => {
+    console.log("🔥 AXIOS INTERCEPTOR:", error.response?.status);
+    console.log("🔥 FAILED URL:", error.config?.url);
+
     const originalRequest = error.config;
 
-    // No request information available
     if (!originalRequest) {
       return Promise.reject(error);
     }
 
-    // Never try to refresh the refresh-token request itself
     if (originalRequest.url?.includes("/refresh-token")) {
       return Promise.reject(error);
     }
 
-    // Handle expired/invalid access token
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry
-    ) {
-      // Prevent infinite retry loop
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log("🔥 401 detected → trying refresh");
+
       originalRequest._retry = true;
 
       try {
-        // Wait for the single shared refresh operation
         await refreshAccessToken();
 
-        // Refresh successful → retry original request
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        // Refresh token is invalid/expired
         console.error("Session expired:", refreshError);
-
         return Promise.reject(refreshError);
       }
     }
 
-    // All other errors
     return Promise.reject(error);
-  }
+  },
+
+  // All other errors
 );
 
 export default axiosInstance;
