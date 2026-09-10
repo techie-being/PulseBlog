@@ -9,8 +9,8 @@ import Comments from "../components/Comments.component.jsx";
 import useGenerateSummary from "../hooks/useGenerateSummary.js";
 import SummaryModal from "../components/user-ai/SummaryModal.jsx";
 import useSimplifyText from "../hooks/useSimplifyText.js";
-import TextSelectionPopup from "../Components/user-ai/TextSelectionPopup.jsx";
-import AskAIModal from "../Components/user-ai/AskAIModal.jsx";
+import TextSelectionPopup from "../components/user-ai/TextSelectionPopup.jsx";
+import AskAIModal from "../components/user-ai/AskAIModal.jsx";
 
 const PostDetail = () => {
   const { postId } = useParams();
