@@ -60,7 +60,7 @@ const App = () => {
     
     finally {
       console.log("🔥 Authentication check finished");
-      dispatch(authInitialized());
+     
     }
   };
 
