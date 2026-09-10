@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { generateAssets } from "../Services/ai.servic.js";
+import { generateAssets } from "../Services/ai.service.js";
 
 const useAssetGenerator = () => {
   const [loading, setLoading] = useState(false);
