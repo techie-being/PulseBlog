@@ -7,7 +7,7 @@ import BlockRenderer from "../components/BlockRenderer.component.jsx";
 import PostCard from "../components/PostCard.component.jsx";
 import Comments from "../components/Comments.component.jsx";
 import useGenerateSummary from "../hooks/useGenerateSummary.js";
-import SummaryModal from "../Components/user-ai/SummaryModal.jsx";
+import SummaryModal from "../components/user-ai/SummaryModal.jsx";
 import useSimplifyText from "../hooks/useSimplifyText.js";
 import TextSelectionPopup from "../Components/user-ai/TextSelectionPopup.jsx";
 import AskAIModal from "../Components/user-ai/AskAIModal.jsx";
