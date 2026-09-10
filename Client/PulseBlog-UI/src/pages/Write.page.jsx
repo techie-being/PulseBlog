@@ -6,9 +6,9 @@ import axiosInstance from "../api/axiosInstance";
 import toast, { Toaster } from "react-hot-toast";
 import useAssetGenerator from "../hooks/useAssetGenerator";
 import usePolishDraft from "../hooks/usePolishDraft.js";
-import PolishPreviewModal from "../Components/author-ai/PolishPreviewModal.jsx";
-import AIWorkspaceModal from "../Components/author-ai/AIWorkspaceModal.jsx";
-import AssetGeneratorModal from "../Components/author-ai/AssetGeneratorModal";
+import PolishPreviewModal from "../components/author-ai/PolishPreviewModal.jsx";
+import AIWorkspaceModal from "../components/author-ai/AIWorkspaceModal.jsx";
+import AssetGeneratorModal from "../components/author-ai/AssetGeneratorModal";
 
 const WritePage = () => {
   const { postId } = useParams();
