@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { simplifyText } from "../services/ai.service";
+import { simplifyText } from "../Services/ai.service.js";
 
 const useSimplifyText = () => {
   const [loading, setLoading] = useState(false);

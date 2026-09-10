@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { generateSummary } from "../services/ai.service";
+import { generateSummary } from "../Services/ai.service.js";
 
 const useGenerateSummary = () => {
   const [loading, setLoading] = useState(false);

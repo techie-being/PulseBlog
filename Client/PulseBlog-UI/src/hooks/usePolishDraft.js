@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { polishDraft } from "../services/ai.service";
+import { polishDraft } from "../Services/ai.service.js";
 
 export default function usePolishDraft() {
   const [showPreview, setShowPreview] = useState(false);
