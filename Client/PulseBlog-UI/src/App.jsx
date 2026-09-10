@@ -19,7 +19,7 @@ import ResetPassword from "./pages/ResetPassword.page";
 import LoginSuccess from "./pages/LoginSuccess.page";
 import LoginFailed from "./pages/LoginFailed.page";
 
-import { loginSuccess, logout } from "./redux/slices/authSlice";
+import { loginSuccess, logout, authInitialized } from "./redux/slices/authSlice";
 
 import axiosInstance from "./api/axiosInstance";
 
@@ -28,40 +28,49 @@ const App = () => {
   const authInitialized = useSelector((state) => state.auth.authInitialized);
 
   useEffect(() => {
-    console.log("🔥 App auth useEffect RUNNING");
+  console.log("🔥 App auth useEffect RUNNING");
 
-    const initializeAuth = async () => {
-      try {
-        console.log("🔥 Calling current-user...");
+  const initializeAuth = async () => {
+    try {
+      console.log("🔥 Calling current-user...");
 
-        const res = await axiosInstance.get("/users/current-user");
+      const res = await axiosInstance.get("/users/current-user");
 
-        console.log("🔥 Current-user response:", res.data);
+      console.log("🔥 Current-user response:", res.data);
 
-        const user = res.data.data;
+      const user = res.data.data;
 
-        console.log("Before Redux:", user);
+      console.log("Before Redux:", user);
 
-        dispatch(loginSuccess(user));
+      dispatch(loginSuccess(user));
 
-        console.log("Redux loginSuccess dispatched");
-      } catch (error) {
-        if (error.response?.status === 401) {
-          dispatch(logout());
-        }
-        if (error.response?.status === 500) {
-          console.log("Internal server error", error);
-        }
+      console.log("Redux loginSuccess dispatched");
+    } 
+
+    catch (error) {
+      if (error.response?.status === 401) {
+        console.log("🔥 Current-user 401 — user is not logged in");
+        dispatch(logout());
       }
-    };
 
-    initializeAuth();
-  }, [dispatch]);
+      if (error.response?.status === 500) {
+        console.log("🔥 Internal server error", error);
+      }
+    } 
+    
+    finally {
+      console.log("🔥 Authentication check finished");
+      dispatch(authInitialized());
+    }
+  };
 
-  if(!authInitialized){
-    return <div>authentication checking ...</div>;
-  }
+  initializeAuth();
+}, [dispatch]);
 
+if (!authInitialized) {
+  return <div>authentication checking ...</div>
+}
+ 
   return (
     <>
       <Toaster position="top-right" />

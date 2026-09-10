@@ -46,11 +46,11 @@ const authSlice = createSlice({
             // Update localStorage with new user data
             localStorage.setItem("user", JSON.stringify(state.user));
         },
-        authIntialized:(state) => {
+        authInitialized:(state) => {
             state.authInitialized = true;
         }
     },
 });
 
-export const { loginStart, loginSuccess, loginFailure, logout, updateUser,authIntialized } = authSlice.actions;
+export const { loginStart, loginSuccess, loginFailure, logout, updateUser,authInitialized } = authSlice.actions;
 export default authSlice.reducer;
