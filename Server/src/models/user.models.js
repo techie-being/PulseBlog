@@ -118,6 +118,7 @@ userSchema.methods.isPasswordCorrect = async function(password){
 userSchema.methods.generateAccessToken = function(){
     const secret = process.env.ACCESS_TOKEN_SECRET;
     const expiry = process.env.ACCESS_TOKEN_EXPIRY;
+    console.log("ACCESS TOKEN EXPIRY:", process.env.ACCESS_TOKEN_EXPIRY);
 
     if(!secret){
         throw new error(401,"Jwt secret code is not found")
