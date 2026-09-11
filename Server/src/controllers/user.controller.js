@@ -9,11 +9,18 @@ import mongoose from "mongoose";
 import crypto from "crypto";
 import {sendEmail} from "../utils/sendEmail.js";
 
-const options = {
+const RefreshTokenOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   maxAge: 25 * 24 * 60 * 60 * 1000,
+};
+
+const AccessTokenOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge:  15 * 1000,
 };
 
 const generateAccessAndRefreshToken = async (userId) => {
@@ -69,8 +76,8 @@ const registerUser = Asynchandler(async (req, res) => {
 
   return res
     .status(201)
-    .cookie("accessToken", accessToken, options) // Now accessToken is defined!
-    .cookie("refreshToken", refreshToken, options) // Now refreshToken is defined!
+    .cookie("accessToken", accessToken, AccessTokenOptions) // Now accessToken is defined!
+    .cookie("refreshToken", refreshToken, RefreshTokenOptions) // Now refreshToken is defined!
     .json(
       new Apiresponse(
         201, 
@@ -164,8 +171,8 @@ const userLogin = Asynchandler(async (req, res) => {
 
   return res
     .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
+    .cookie("accessToken", accessToken,AccessTokenOptions)
+    .cookie("refreshToken", refreshToken,RefreshTokenOptions)
     .json(
       new Apiresponse(
         200,
@@ -292,8 +299,8 @@ const userLogout = Asynchandler(async (req, res) => {
 
   return res
     .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
+    .clearCookie("accessToken", AccessTokenOptions)
+    .clearCookie("refreshToken", RefreshTokenOptions)
     .json(new Apiresponse(200, {}, "user logged out successfully"));
 });
 
@@ -338,8 +345,8 @@ const refreshToken = Asynchandler(async (req, res) => {
     // 5. Response
     return res
       .status(200)
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", refreshToken, options)
+      .cookie("accessToken", accessToken, AccessTokenOptions)
+      .cookie("refreshToken", refreshToken, RefreshTokenOptions)
       .json(
         new Apiresponse(200, { accessToken, refreshToken }, "Tokens refreshed"),
       );
