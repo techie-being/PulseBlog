@@ -14,10 +14,10 @@ const verifyJwt = Asynchandler(async (req, res, next) => {
        
         
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        console.log("Decoded token:", decodedToken);
+        
 
         const user = await User.findById(decodedToken?._id).select("-password -refreshToken");
-        console.log("DB tokenVersion:", user.tokenVersion);
+        
         if (!user) {
             throw new Apierror(401, "Invalid Access Token");
         }
@@ -31,7 +31,7 @@ const verifyJwt = Asynchandler(async (req, res, next) => {
         //temporary user object just o get user._id of that user ans passed this to 
         // logout controller for removing its token from db
         req.user = user; 
-        console.log("✅ verifyJwt passed");
+        
         next(); 
     } 
     catch (error) {
