@@ -20,7 +20,7 @@ const AccessTokenOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-  maxAge:  15 * 1000,
+  maxAge: 15 * 60 * 1000, // 15 minutes
 };
 
 const generateAccessAndRefreshToken = async (userId) => {
