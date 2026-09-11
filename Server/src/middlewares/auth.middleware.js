@@ -31,7 +31,7 @@ const verifyJwt = Asynchandler(async (req, res, next) => {
         //temporary user object just o get user._id of that user ans passed this to 
         // logout controller for removing its token from db
         req.user = user; 
-        
+        console.log("✅ verifyJwt passed");
         next(); 
     } 
     catch (error) {
