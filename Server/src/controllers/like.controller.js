@@ -64,6 +64,7 @@ const getLikedList = Asynchandler(async (req, res) => {
 });
 
 const unlikePost = Asynchandler(async (req, res) => {
+  console.log("🔥 unlikePost controller reached");
   const { postId } = req.params;
 
   const userId = req.user._id;
