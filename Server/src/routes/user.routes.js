@@ -14,7 +14,10 @@ import {
   updateCoverImage,
   refreshToken,
   userProfileDetails ,
-  completeOnboarding
+  completeOnboarding,
+  AccessTokenOptions,
+  RefreshTokenOptions,
+
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middlewares.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
@@ -77,17 +80,12 @@ router.route("/google/callback").get(
       // Generate your system's custom JWTs
       const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
-      const options = {
-        httpOnly: true,
-        // Set secure to true only in production (HTTPS)
-        secure: process.env.NODE_ENV === "production", 
-        sameSite: "Lax"
-      };
+      
 
       // Send cookies and redirect to frontend
       res
-        .cookie("accessToken", accessToken, options)
-        .cookie("refreshToken", refreshToken, options)
+        .cookie("accessToken", accessToken,AccessTokenOptions)
+        .cookie("refreshToken", refreshToken, RefreshTokenOptions)
         .redirect(`${process.env.FRONTEND_URL}/login-success`);
 
     } 

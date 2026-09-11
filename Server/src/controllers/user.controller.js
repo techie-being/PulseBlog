@@ -623,6 +623,8 @@ const completeOnboarding = Asynchandler(async (req, res) => {
 });
 
 export {
+  RefreshTokenOptions,
+  AccessTokenOptions,
   registerUser,
   setupAccount,
   userLogin,
