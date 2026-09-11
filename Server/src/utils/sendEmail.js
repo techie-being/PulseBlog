@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 const sendEmail = async (options) => {
   console.log("Attempting to send email to:", options.email);
   console.log("Using Host:", process.env.EMAIL_HOST);
+  console.log("Using Port:", process.env.EMAIL_PORT);
   // 1. Create a transporter
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
