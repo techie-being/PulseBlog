@@ -73,7 +73,7 @@ const UserAuthForm = ({ type }) => {
     };
 
     const handleGoogleAuth = () => {
-        window.location.href = import.meta.env.GOOGLE_AUTH_URL;
+        window.location.href = import.meta.env.VITE_GOOGLE_AUTH_URL;
     };
 
     return (
