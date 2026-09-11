@@ -5,9 +5,8 @@ const sendEmail = async (options) => {
   console.log("Using Host:", process.env.EMAIL_HOST);
   // 1. Create a transporter
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
     host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
+    port: Number(process.env.EMAIL_PORT),
     secure: false,
     auth: {
       user: process.env.EMAIL_USER,
@@ -28,4 +27,4 @@ const sendEmail = async (options) => {
   return await transporter.sendMail(mailOptions);
 };
 
-export {sendEmail};
+export { sendEmail };
