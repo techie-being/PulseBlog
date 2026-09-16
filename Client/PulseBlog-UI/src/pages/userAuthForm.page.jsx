@@ -77,99 +77,125 @@ const UserAuthForm = ({ type }) => {
     };
 
     return (
-        <section className="h-cover flex items-center justify-center">
-            <Toaster />
-            <form className="w-full max-w-[350px]" onSubmit={handleSubmit}>
-                <h1 className="text-4xl font-gelasio capitalize text-center mb-10">
-                    {type === "sign-in" ? "Welcome Back" : "Join Us Today"}
-                </h1>
+      <section className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 sm:px-6 py-12 bg-white transition-colors duration-200">
+        <Toaster position="top-center" />
 
-                {type !== "sign-in" && (
-                    <InputBox
-                        name="username"
-                        type="text"
-                        placeholder="Username"
-                        icon="fi-rr-circle-user"
-                        value={formData.username}
-                        onChange={handleChange}
-                    />
-                )}
+        {/* Card Container - Light Slate Fill matching Palette */}
+        <div className="w-full max-w-md bg-slate-50/80 border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm hover:shadow transition-shadow">
+          <h1 className="font-gelasio text-2xl sm:text-3xl font-bold text-slate-900 text-center mb-6 tracking-tight capitalize">
+            {type === "sign-in" ? "Welcome Back" : "Join Us Today"}
+          </h1>
 
-                <InputBox
-                    name="email"
-                    type="email"
-                    placeholder="E-mail"
-                    icon="fi-rr-envelope"
-                    value={formData.email}
-                    onChange={handleChange}
-                />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {type !== "sign-in" && (
+              <InputBox
+                name="username"
+                type="text"
+                placeholder="Username"
+                icon="fi-rr-circle-user"
+                value={formData.username}
+                onChange={handleChange}
+              />
+            )}
 
-                <InputBox
-                    name="password"
-                    type="password"
-                    placeholder="Password"
-                    icon="fi-rr-key"
-                    value={formData.password}
-                    onChange={handleChange}
-                />
+            <InputBox
+              name="email"
+              type="email"
+              placeholder="E-mail"
+              icon="fi-rr-envelope"
+              value={formData.email}
+              onChange={handleChange}
+            />
 
-                {type === "sign-in" && (
-                    <div className="w-full flex justify-end mt-2 mb-4">
-                        <Link 
-                            to="/forgot-password" 
-                            className="text-sm text-dark-grey hover:text-black underline transition-colors"
-                        >
-                            Forgot Password?
-                        </Link>
-                    </div>
-                )}
+            <InputBox
+              name="password"
+              type="password"
+              placeholder="Password"
+              icon="fi-rr-key"
+              value={formData.password}
+              onChange={handleChange}
+            />
 
-                {error && (
-                    <p className="text-red-500 text-sm mb-4 text-center font-medium bg-red-50 p-2 rounded-md">
-                        {error}
-                    </p>
-                )}
-
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="btn-dark centre mt-1 center w-[30%] disabled:opacity-50"
+            {type === "sign-in" && (
+              <div className="flex justify-end pt-1">
+                <Link
+                  to="/forgot-password"
+                  className="text-xs sm:text-sm font-medium text-slate-600 hover:text-slate-900 underline underline-offset-4 transition-colors"
                 >
-                    {loading ? "Please wait..." : type.replace("-", " ")}
-                </button>
+                  Forgot Password?
+                </Link>
+              </div>
+            )}
 
-                <div className="relative w-full flex items-center gap-2 my-6 opacity-10 uppercase text-black font-bold">
-                    <hr className="w-1/2 border-black" />
-                    <p>or</p>
-                    <hr className="w-1/2 border-black" />
-                </div>
+            {error && (
+              <p className="text-red-600 text-xs sm:text-sm text-center font-medium bg-red-50 border border-red-200/60 p-2.5 rounded-xl">
+                {error}
+              </p>
+            )}
 
-                <button
-                    type="button"
-                    onClick={handleGoogleAuth}
-                    className="btn-dark flex items-center justify-center gap-4 w-[75%] center"
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-11 sm:h-12 mt-2 inline-flex items-center justify-center gap-2 px-6 text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all duration-150 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed shadow-sm capitalize"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <span>Please wait...</span>
+                </>
+              ) : (
+                <span>{type.replace("-", " ")}</span>
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="relative flex items-center justify-center my-6">
+            <div className="border-t border-slate-200 w-full" />
+            <span className="bg-slate-50 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400 absolute">
+              or
+            </span>
+          </div>
+
+          {/* Google Auth Button */}
+          <button
+            type="button"
+            onClick={handleGoogleAuth}
+            className="w-full h-11 sm:h-12 flex items-center justify-center gap-3 px-6 text-sm font-semibold text-slate-800 bg-white border border-slate-200 hover:bg-slate-100/80 rounded-xl transition-all duration-150 active:scale-[0.98] shadow-2xs"
+          >
+            <img src={googleIcon} className="w-5 h-5 object-contain" alt="Google" />
+            <span>Continue with Google</span>
+          </button>
+
+          {/* Footer Back Link */}
+          <div className="mt-8 pt-6 border-t border-slate-200/80 text-center">
+            {type === "sign-in" ? (
+              <p className="text-xs sm:text-sm text-slate-600">
+                Don't have an account?{" "}
+                <Link
+                  to="/signup"
+                  className="font-semibold text-slate-900 hover:underline underline-offset-4 transition-colors ml-1"
                 >
-                    <img src={googleIcon} className="w-5" alt="Google" />
-                    Continue with Google
-                </button>
-
-                {type === "sign-in" ? (
-                    <p className="mt-6 text-dark-grey text-l text-center">
-                        Don't have an account?
-                        <Link to="/signup" className="underline text-black ml-1">
-                            Join us today
-                        </Link>
-                    </p>
-                ) : (
-                    <p className="mt-4 text-dark-grey text-l text-center">
-                        Already a member?
-                        <Link to="/signin" className="underline text-black ml-1">
-                            Sign in here
-                        </Link>
-                    </p>
-                )}
-            </form>
-        </section>
+                  Join us today
+                </Link>
+              </p>
+            ) : (
+              <p className="text-xs sm:text-sm text-slate-600">
+                Already a member?{" "}
+                <Link
+                  to="/signin"
+                  className="font-semibold text-slate-900 hover:underline underline-offset-4 transition-colors ml-1"
+                >
+                  Sign in here
+                </Link>
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
     );
 };
 

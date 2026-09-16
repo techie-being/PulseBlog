@@ -1,117 +1,167 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom"; // Imported useSearchParams
+import { useSearchParams, useNavigate } from "react-router-dom";
 import PostCard from "../components/PostCard.component";
 import axiosInstance from "../api/axiosInstance";
 import toast, { Toaster } from "react-hot-toast";
 
 const SearchPage = () => {
-  // 1. Grab the query parameters from the URL
   const [searchParams, setSearchParams] = useSearchParams();
-  const urlQuery = searchParams.get("q") || ""; // Get the 'q' value, or default to empty string
+  const navigate = useNavigate();
+  const urlQuery = searchParams.get("q") || "";
 
-  // 2. Set the initial state based on the URL
   const [query, setQuery] = useState(urlQuery);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  // 3. Automatically fetch data whenever the URL changes
+  // Synchronize search state with URL query parameter changes
   useEffect(() => {
-    if (urlQuery) {
+    if (urlQuery.trim()) {
       setQuery(urlQuery);
       fetchSearchResults(urlQuery);
     } else {
-      // If the URL is just /search with no query, clear the results
       setResults([]);
       setSearched(false);
       setQuery("");
     }
-  }, [urlQuery]); // This runs every time 'urlQuery' changes
+  }, [urlQuery]);
 
-  useEffect(() => {
-    console.log("RESULTS STATE");
-    console.log(results);
-    console.log("Length:", results.length);
-  }, [results]);
-
-
-  // Extracted the backend call into its own function
   const fetchSearchResults = async (searchKeyword) => {
     setLoading(true);
     setSearched(true);
     try {
       const res = await axiosInstance.get(
-        `/posts/search-post?query=${encodeURIComponent(searchKeyword)}&limit=10`,
+        `/posts/search-post?query=${encodeURIComponent(searchKeyword)}&limit=10`
       );
 
-      console.log("Entire Response:", res.data);
+      const rawData = res.data?.data;
+      const postsArray = Array.isArray(rawData)
+        ? rawData
+        : Array.isArray(rawData?.data)
+        ? rawData.data
+        : Array.isArray(res.data)
+        ? res.data
+        : [];
 
-      console.log("res.data.data =", res.data.data);
-      console.log("res.data.data.data =", res.data.data?.data);
-      console.log("Is Array?", Array.isArray(res.data.data?.data));
-
-      setResults(res.data.data.data);
-    } catch {
-      toast.error("Search failed. Try again.");
+      setResults(postsArray);
+    } catch (err) {
+      console.error("Search API error:", err);
+      toast.error(err?.response?.data?.message || "Search failed. Try again.");
+      setResults([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    console.log("Rendered results:", results);
-  }, [results]);
-
   const handleSearch = (e) => {
     e.preventDefault();
-    if (!query.trim()) return toast.error("Enter a search term");
+    const trimmedQuery = query.trim();
 
-    // 4. Instead of manually fetching here, we just update the URL.
-    // The useEffect above will detect the URL change and automatically run the fetch!
-    setSearchParams({ q: query });
+    if (!trimmedQuery) {
+      return toast.error("Enter a search term");
+    }
+
+    setSearchParams({ q: trimmedQuery });
   };
-  
+
+  // Clear query and reset page state cleanly
+  const handleClearSearch = () => {
+    setQuery("");
+    setResults([]);
+    setSearched(false);
+    setSearchParams({});
+    navigate("/"); // Redirect back to feed/home when search is cleared
+  };
 
   return (
-    <section>
-      <Toaster />
-      <div className="w-full max-w-3xl p-4">
-        <form onSubmit={handleSearch} className="flex gap-3 mb-10">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search posts by topic or keyword..."
-              className="w-full bg-grey p-4 pl-12 pr-6 rounded-full placeholder:text-dark-grey outline-none focus:bg-transparent border border-grey focus:border-black"
+    <section className="max-w-3xl mx-auto py-8 px-4 sm:px-6">
+      <Toaster position="top-center" />
+
+      {/* Search Input Bar */}
+      <form onSubmit={handleSearch} className="flex gap-3 mb-10">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search posts by topic or keyword..."
+            className="w-full bg-grey/40 dark:bg-gray-800 p-4 pl-12 pr-10 rounded-full text-sm placeholder:text-dark-grey outline-none border border-transparent focus:border-black dark:focus:border-white transition-all text-gray-900 dark:text-white"
+          />
+          <i className="fi fi-rr-search absolute left-4 top-1/2 -translate-y-1/2 text-dark-grey text-lg" />
+          
+          {query && (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-dark-grey hover:text-black dark:hover:text-white transition-colors"
+              aria-label="Clear Search"
+            >
+              <i className="fi fi-rr-cross-small text-xl" />
+            </button>
+          )}
+        </div>
+
+        <button
+          type="submit"
+          className="bg-black text-white dark:bg-white dark:text-black px-6 sm:px-8 py-3 rounded-full text-sm font-medium active:scale-95 transition-transform shrink-0"
+        >
+          Search
+        </button>
+      </form>
+
+      {/* Loading Skeletons */}
+      {loading && (
+        <div className="space-y-6">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="h-32 bg-grey/50 dark:bg-gray-800 rounded-2xl animate-pulse"
             />
-            <i className="fi fi-br-search absolute left-4 top-1/2 -translate-y-1/2 text-dark-grey" />
-          </div>
-          <button type="submit" className="btn-dark py-2 px-8 rounded-full">
-            Search
-          </button>
-        </form>
-
-        {loading && (
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-28 bg-grey rounded-xl animate-pulse" />
-            ))}
-          </div>
-        )}
-
-        {!loading && searched && results.length === 0 && (
-          <div className="text-center py-16 text-dark-grey">
-            <i className="fi fi-rr-search text-5xl block mb-4" />
-            <p className="text-xl">No results found for "{query}"</p>
-          </div>
-        )}
-
-        {!loading &&
-          results.map((post, index) => (
-            <PostCard key={post._id} post={post} index={index} />
           ))}
-      </div>
+        </div>
+      )}
+
+      {/* Initial Prompt State (When no search query is active) */}
+      {!loading && !searched && !urlQuery && (
+        <div className="text-center py-16 bg-grey/20 dark:bg-gray-900 rounded-2xl border border-grey/60 px-4">
+          <i className="fi fi-rr-search text-5xl text-dark-grey block mb-3 opacity-40" />
+          <p className="text-base font-medium text-gray-800 dark:text-gray-200">
+            Type a query above to start searching
+          </p>
+          <p className="text-xs text-dark-grey mt-1">
+            Explore articles, tags, and topics across PulseBlog.
+          </p>
+        </div>
+      )}
+
+      {/* Empty Search Results State */}
+      {!loading && searched && results.length === 0 && (
+        <div className="text-center py-16 bg-grey/20 dark:bg-gray-900 rounded-2xl border border-grey/60 px-4">
+          <i className="fi fi-rr-search-alt text-5xl text-dark-grey block mb-3 opacity-60" />
+          <p className="text-lg font-medium text-gray-800 dark:text-gray-200">
+            No results found for "{urlQuery}"
+          </p>
+          <p className="text-xs text-dark-grey mt-1">
+            Try checking for typos or searching with different keywords.
+          </p>
+        </div>
+      )}
+
+      {/* Results Header */}
+      {!loading && searched && results.length > 0 && (
+        <p className="text-xs font-semibold text-dark-grey uppercase tracking-wider mb-6">
+          Showing {results.length} result{results.length > 1 ? "s" : ""} for "{urlQuery}"
+        </p>
+      )}
+
+      {/* Results Feed */}
+      {!loading && searched && results.length > 0 && (
+        <div className="space-y-6">
+          {results.map((post, index) => (
+            <PostCard key={post._id || index} post={post} index={index} />
+          ))}
+        </div>
+      )}
     </section>
   );
 };

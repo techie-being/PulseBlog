@@ -1,19 +1,21 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import EditorComponent from "../components/Editor.component";
-import axiosInstance from "../api/axiosInstance";
+import EditorComponent from "../components/Editor.component.jsx";
+import axiosInstance from "../api/axiosInstance.js";
 import toast, { Toaster } from "react-hot-toast";
-import useAssetGenerator from "../hooks/useAssetGenerator";
+import useAssetGenerator from "../hooks/useAssetGenerator.js";
 import usePolishDraft from "../hooks/usePolishDraft.js";
 import PolishPreviewModal from "../components/author-ai/PolishPreviewModal.jsx";
 import AIWorkspaceModal from "../components/author-ai/AIWorkspaceModal.jsx";
-import AssetGeneratorModal from "../components/author-ai/AssetGeneratorModal";
+import AssetGeneratorModal from "../components/author-ai/AssetGeneratorModal.jsx";
 
 const WritePage = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
   const fileRef = useRef(null);
+  const editorRef = useRef(null);
+
   const { isLoggedIn } = useSelector((state) => state.auth);
 
   // --- STATE ---
@@ -28,18 +30,13 @@ const WritePage = () => {
   const [assets, setAssets] = useState(null);
   const [openAssetModal, setOpenAssetModal] = useState(false);
 
-  //editor
-  const editorRef = useRef(null);
-
   const {
     loading: polishLoading,
-
     review,
     titleSuggestion,
     headingSuggestions,
     tagSuggestions,
     paragraphSuggestions,
-
     showPreview,
     setShowPreview,
     runPolish,
@@ -47,29 +44,18 @@ const WritePage = () => {
 
   const { generate, loading: assetLoading } = useAssetGenerator();
 
-  const handleApplySuggestion = (suggestion) => {
-    const updatedContent = structuredClone(content);
-
-    updatedContent.blocks[suggestion.blockIndex].data.text =
-      suggestion.improved;
-
-    setContent(updatedContent);
-
-    editorRef.current?.render(updatedContent);
-
-    toast.success("Suggestion applied.");
-  };
-
+  // Load existing post data if editing
   useEffect(() => {
     const fetchPost = async () => {
       try {
+        setIsFetching(true);
         const res = await axiosInstance.get(`/posts/get-post/${postId}`);
         const responseData = res.data?.data || res.data;
         const post = responseData.post || responseData;
 
         setTitle(post.title || "");
         setTags(
-          Array.isArray(post.tags) ? post.tags.join(", ") : post.tags || "",
+          Array.isArray(post.tags) ? post.tags.join(", ") : post.tags || ""
         );
         setThumbnailPreview(post.mediaImage || "");
 
@@ -77,10 +63,15 @@ const WritePage = () => {
           typeof post.content === "string"
             ? JSON.parse(post.content)
             : post.content;
+
         setContent(parsedContent);
+
+        if (editorRef.current && parsedContent) {
+          await editorRef.current.render(parsedContent);
+        }
       } catch (err) {
         toast.error(
-          err?.response?.data?.message || "Failed to fetch post details",
+          err?.response?.data?.message || "Failed to fetch post details"
         );
         navigate("/dashboard");
       } finally {
@@ -95,73 +86,134 @@ const WritePage = () => {
         setIsFetching(false);
       }
     } else {
-      navigate("/signin"); // Safety redirect
+      navigate("/signin");
     }
   }, [postId, isLoggedIn, navigate]);
 
+  // Thumbnail handler
   const handleThumbnailChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 100 * 1024) return toast.error("Image must be under 100KB");
+
+    if (file.size > 100 * 1024) {
+      return toast.error("Image must be under 100KB");
+    }
+
     setThumbnail(file);
     setThumbnailPreview(URL.createObjectURL(file));
   };
 
-  // controller1 it should call generate summary as well in this same manner
-
-  const extractTextFromEditor = () => {
-    if (!content?.blocks) return "";
-
-    return content.blocks
-      .map((block, index) => {
-        if (block.type !== "paragraph" && block.type !== "header") return "";
-
-        return `[BLOCK ${index}]
-${block.data.text}`;
-      })
-      .filter(Boolean)
-      .join("\n\n");
-  };
-
-  const handlePublish = async (isPublished) => {
-    if (!title.trim()) return toast.error("Title is required");
-    if (!content) return toast.error("Write something first!");
-    if (!postId && !thumbnail)
-      return toast.error("Thumbnail image is required");
-
-    setPublishLoading(false);
-    try {
-      const form = new FormData();
-      form.append("title", title);
-      form.append("content", JSON.stringify(content));
-      if (thumbnail) form.append("mediaImage", thumbnail);
-      form.append("isPublished", isPublished);
-      form.append("tags", tags);
-
-      if (postId) {
-        await axiosInstance.patch(`/posts/update-post/${postId}`, form);
-        toast.success(isPublished ? "Post updated!" : "Draft updated!");
-      } else {
-        await axiosInstance.post("/posts/create-post", form);
-        toast.success(isPublished ? "Post published!" : "Draft saved!");
-      }
-      navigate("/dashboard");
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to save post");
-    } finally {
-      setPublishLoading(true);
+  // Helper function to safely set tags formatted as a comma-separated string
+  const handleSetTags = (incomingTags) => {
+    if (Array.isArray(incomingTags)) {
+      setTags(incomingTags.join(", "));
+    } else if (typeof incomingTags === "string") {
+      setTags(incomingTags);
+    } else {
+      setTags("");
     }
   };
 
+  // Publish / Save Draft Logic
+  const handlePublish = useCallback(
+    async (isPublished) => {
+      let currentContent = content;
+
+      if (editorRef.current) {
+        try {
+          const latestData = await editorRef.current.save();
+          if (latestData) currentContent = latestData;
+        } catch (e) {
+          console.warn("Editor save failed, fallback to state content", e);
+        }
+      }
+
+      if (!title.trim()) {
+        toast.error("Title is required");
+        return null;
+      }
+
+      if (
+        !currentContent ||
+        !currentContent.blocks ||
+        currentContent.blocks.length === 0
+      ) {
+        toast.error("Write something in the editor first!");
+        return null;
+      }
+
+      if (!postId && !thumbnail) {
+        toast.error("Thumbnail image is required");
+        return null;
+      }
+
+      setPublishLoading(true);
+
+      try {
+        const form = new FormData();
+        form.append("title", title);
+        form.append("content", JSON.stringify(currentContent));
+        if (thumbnail) form.append("mediaImage", thumbnail);
+        form.append("isPublished", isPublished);
+
+        // Ensure tags are cleaned up and formatted before sending to server
+        const formattedTags = Array.isArray(tags)
+          ? tags.join(",")
+          : typeof tags === "string"
+          ? tags
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean)
+              .join(",")
+          : "";
+
+        form.append("tags", formattedTags);
+
+        let response;
+        if (postId) {
+          response = await axiosInstance.patch(
+            `/posts/update-post/${postId}`,
+            form
+          );
+          toast.success(isPublished ? "Post updated!" : "Draft updated!");
+        } else {
+          response = await axiosInstance.post("/posts/create-post", form);
+          toast.success(isPublished ? "Post published!" : "Draft saved!");
+        }
+
+        const resData = response.data?.data || response.data;
+        const targetId = postId || resData?._id || resData?.id;
+
+        navigate("/dashboard");
+        return targetId;
+      } catch (err) {
+        toast.error(err?.response?.data?.message || "Failed to save post");
+        return null;
+      } finally {
+        setPublishLoading(false);
+      }
+    },
+    [content, title, thumbnail, tags, postId, navigate]
+  );
+
+  // AI Assets Generator Handler
   const handleGenerateAssets = async () => {
+    let currentPostId = postId;
+
+    if (!currentPostId) {
+      const toastId = toast.loading("Saving draft first to generate assets...");
+      currentPostId = await handlePublish(false);
+      toast.dismiss(toastId);
+
+      if (!currentPostId) {
+        return toast.error("Please save draft before generating assets.");
+      }
+    }
+
     try {
-      const data = await generate(postId);
-
-      setAssets(data); // ✅ Correct
-      setOpenAssetModal(true); // ✅ Correct
-
-      console.log(data);
-
+      const data = await generate(currentPostId);
+      setAssets(data);
+      setOpenAssetModal(true);
       setShowAIWorkspace(false);
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to generate assets");
@@ -170,8 +222,8 @@ ${block.data.text}`;
 
   if (isFetching) {
     return (
-      <div className="flex justify-center items-center h-[70vh]">
-        <p className="text-dark-grey text-xl animate-pulse">
+      <div className="flex justify-center items-center min-h-[70vh] bg-slate-50/60">
+        <p className="text-slate-400 text-lg font-semibold animate-pulse">
           Loading editor...
         </p>
       </div>
@@ -179,27 +231,38 @@ ${block.data.text}`;
   }
 
   return (
-    <section>
-      <Toaster />
+    <section className="w-full min-h-screen bg-slate-50/60 text-slate-900 transition-colors">
+      <Toaster position="top-center" />
 
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-8">
+      <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+        {/* Header Title */}
+        <h1
+          className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-6 sm:mb-8 text-slate-900"
+          style={{ color: "#0f172a" }}
+        >
           {postId ? "Edit Post" : "New Post"}
         </h1>
 
+        {/* Thumbnail Uploader Container */}
         <div
-          className="w-full aspect-video bg-grey rounded-xl mb-6 cursor-pointer overflow-hidden relative group"
-          onClick={() => fileRef.current.click()}
+          className="w-full aspect-video max-h-[220px] sm:max-h-[360px] bg-white rounded-2xl mb-6 cursor-pointer overflow-hidden relative group border-2 border-dashed border-slate-200 hover:border-indigo-400 transition-all flex items-center justify-center shadow-sm"
+          onClick={() => fileRef.current?.click()}
         >
           {thumbnailPreview ? (
             <img
               src={thumbnailPreview}
-              className="w-full h-full object-cover"
+              alt="Thumbnail Preview"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
-            <div className="text-center text-dark-grey p-10">
-              <i className="fi fi-rr-picture text-4xl block mb-2" />
-              <p>Add Thumbnail (Max 100KB)</p>
+            <div className="flex flex-col items-center justify-center text-slate-500 p-6 text-center">
+              <i className="fi fi-rr-picture text-3xl sm:text-5xl mb-2 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+              <p className="text-xs sm:text-sm font-semibold text-slate-700">
+                Click to add a thumbnail image
+              </p>
+              <span className="text-[10px] sm:text-xs text-slate-400 mt-1">
+                Max file size: 100KB
+              </span>
             </div>
           )}
         </div>
@@ -211,80 +274,89 @@ ${block.data.text}`;
           onChange={handleThumbnailChange}
         />
 
-        <div className="relative mb-8">
+        {/* Post Title Input */}
+        <div className="relative mb-6 sm:mb-8 w-full max-w-full overflow-hidden">
           <input
             type="text"
             placeholder="Post Title..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full text-4xl font-bold outline-none border-b border-grey pb-4 pr-[140px]"
+            className="w-full text-2xl sm:text-4xl font-extrabold tracking-tight outline-none border-b-2 border-slate-200 focus:border-indigo-600 bg-transparent pb-3 sm:pb-4 text-slate-900 placeholder:text-slate-300 transition-colors break-words overflow-x-auto whitespace-normal"
+            style={{ color: "#0f172a", caretColor: "#0f172a" }}
           />
         </div>
 
-        <input
-          type="text"
-          placeholder="Tags (comma separated)"
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          className="input-box mb-6"
-        />
+        {/* Tags Input */}
+        <div className="w-full mb-6 sm:mb-8">
+          <input
+            type="text"
+            placeholder="Tags (comma separated e.g. react, webdev)"
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            className="w-full bg-white text-slate-900 px-4 py-3 rounded-xl text-xs sm:text-sm font-medium outline-none border border-slate-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400 shadow-sm"
+            style={{ color: "#0f172a", backgroundColor: "#ffffff" }}
+          />
+        </div>
 
-        <EditorComponent
-          ref={editorRef}
-          initialContent={content}
-          onChange={setContent}
-        />
+        {/* Editor Container Surface */}
+        <div className="w-full min-h-[300px] sm:min-h-[400px] bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-sm mb-8">
+          <EditorComponent
+            ref={editorRef}
+            initialContent={content}
+            onChange={setContent}
+          />
+        </div>
 
-        <div className="mt-10 border-t border-grey pt-6 flex items-center justify-between">
-          {/* Left */}
+        {/* Action Bar */}
+        <div className="w-full border-t border-slate-200 pt-6 mb-16 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
           <button
+            type="button"
             onClick={() => setShowAIWorkspace(true)}
-            className="btn-dark transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-lg"
+            className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold rounded-xl sm:rounded-full text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md shadow-indigo-500/10"
           >
-            ✨ Use AI
+            <span className="text-sm">✨</span> Use AI Workspace
           </button>
 
-          {/* Right */}
-          <div className="flex gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <button
-              onClick={() => handlePublish(false)}
+              type="button"
               disabled={publishLoading}
-              className="btn-light transition-all duration-300 hover:bg-black hover:text-white hover:scale-105 active:scale-95"
+              onClick={() => handlePublish(false)}
+              className="flex-1 sm:flex-initial px-5 py-3 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold rounded-xl sm:rounded-full text-xs sm:text-sm transition-all disabled:opacity-50 active:scale-95 text-center shadow-sm"
             >
               Save Draft
             </button>
 
             <button
-              onClick={() => handlePublish(true)}
+              type="button"
               disabled={publishLoading}
-              className="btn-dark transition-all duration-300 hover:bg-purple-600 hover:scale-105 active:scale-95"
+              onClick={() => handlePublish(true)}
+              className="flex-1 sm:flex-initial px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl sm:rounded-full text-xs sm:text-sm transition-all disabled:opacity-50 active:scale-95 text-center shadow-md shadow-indigo-500/20"
             >
               {publishLoading
                 ? "Processing..."
                 : postId
-                  ? "Update Post"
-                  : "Publish"}
+                ? "Update Post"
+                : "Publish"}
             </button>
           </div>
         </div>
 
+        {/* AI Modals */}
         <AIWorkspaceModal
           open={showAIWorkspace}
           onClose={() => setShowAIWorkspace(false)}
           loading={polishLoading}
           assetLoading={assetLoading}
           onPolish={() => {
-            console.log("STEP 1 - Button clicked");
-
             runPolish(
               {
                 title,
                 tags,
                 content,
               },
-              postId,
+              postId
             );
-
             setShowAIWorkspace(false);
           }}
           onAssets={handleGenerateAssets}
@@ -298,10 +370,15 @@ ${block.data.text}`;
           tagSuggestions={tagSuggestions}
           paragraphSuggestions={paragraphSuggestions}
           content={content}
-          setContent={setContent}
+          setContent={(newContent) => {
+            setContent(newContent);
+            if (editorRef.current) {
+              editorRef.current.render(newContent);
+            }
+          }}
           editorRef={editorRef}
           setTitle={setTitle}
-          setTags={setTags}
+          setTags={handleSetTags}
           onClose={() => setShowPreview(false)}
         />
 

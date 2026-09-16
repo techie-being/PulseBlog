@@ -9,9 +9,10 @@ const SummaryModal = ({ open, data, onClose }) => {
   if (!open || !data) return null;
 
   const handleCopy = (key, text) => {
+    if (!text) return toast.error("Nothing to copy!");
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
-    
+
     if (key === "summary") toast.success("Summary copied!");
     else if (key === "takeaways") toast.success("Key takeaways copied!");
     else if (key === "everything") toast.success("Copied everything successfully!");
@@ -19,22 +20,28 @@ const SummaryModal = ({ open, data, onClose }) => {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
+  const takeaways = Array.isArray(data?.keyTakeaways) ? data.keyTakeaways : [];
+
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-start justify-center pt-24 pb-8 px-4 z-50 overflow-y-auto animate-fadeIn">
-      <div className="bg-white w-full max-w-4xl max-h-[82vh] flex flex-col rounded-3xl shadow-2xl overflow-hidden border border-gray-100 my-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto animate-fadeIn">
+      <div className="bg-white w-full max-w-4xl max-h-[85vh] flex flex-col rounded-3xl shadow-2xl overflow-hidden border border-gray-100 my-auto">
         
         {/* Modal Header */}
-        <div className="flex justify-between items-center px-8 py-6 border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
+        <div className="flex justify-between items-center px-8 py-5 border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl">
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
               <FaRegFileAlt className="text-xl" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">AI Generated Summary</h2>
-              <p className="text-sm text-gray-500">Review, copy, and export your content summary</p>
+              <h2 className="text-lg font-bold text-gray-900 leading-snug">
+                AI Generated Summary
+              </h2>
+              <p className="text-xs text-gray-500 font-medium">
+                Review, copy, and export your content summary
+              </p>
             </div>
           </div>
-          
+
           <button
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
@@ -55,7 +62,7 @@ const SummaryModal = ({ open, data, onClose }) => {
               </h3>
 
               <button
-                onClick={() => handleCopy("summary", data.summary)}
+                onClick={() => handleCopy("summary", data?.summary)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                   copiedKey === "summary"
                     ? "bg-emerald-600 text-white"
@@ -68,7 +75,7 @@ const SummaryModal = ({ open, data, onClose }) => {
             </div>
 
             <p className="leading-relaxed whitespace-pre-wrap text-gray-700">
-              {data.summary}
+              {data?.summary || "No summary available."}
             </p>
           </section>
 
@@ -81,7 +88,7 @@ const SummaryModal = ({ open, data, onClose }) => {
               </h3>
 
               <button
-                onClick={() => handleCopy("takeaways", data.keyTakeaways.join("\n"))}
+                onClick={() => handleCopy("takeaways", takeaways.join("\n"))}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                   copiedKey === "takeaways"
                     ? "bg-emerald-600 text-white"
@@ -94,17 +101,21 @@ const SummaryModal = ({ open, data, onClose }) => {
             </div>
 
             <div className="space-y-3">
-              {data.keyTakeaways.map((item, index) => (
-                <div
-                  key={index}
-                  className="bg-gray-50/80 border border-gray-100 rounded-2xl p-4 text-gray-800 font-medium flex items-start gap-3"
-                >
-                  <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5">
-                    #{index + 1}
-                  </span>
-                  <p className="flex-1">{item}</p>
-                </div>
-              ))}
+              {takeaways.length > 0 ? (
+                takeaways.map((item, index) => (
+                  <div
+                    key={index}
+                    className="bg-gray-50/80 border border-gray-100 rounded-2xl p-4 text-gray-800 font-medium flex items-start gap-3"
+                  >
+                    <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full mt-0.5">
+                      #{index + 1}
+                    </span>
+                    <p className="flex-1">{item}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 italic text-sm">No takeaways available.</p>
+              )}
             </div>
           </section>
 
@@ -116,7 +127,9 @@ const SummaryModal = ({ open, data, onClose }) => {
             onClick={() =>
               handleCopy(
                 "everything",
-                `Summary\n\n${data.summary}\n\nKey Takeaways\n\n• ${data.keyTakeaways.join("\n• ")}`
+                `Summary\n\n${data?.summary || ""}\n\nKey Takeaways\n\n${
+                  takeaways.length ? "• " + takeaways.join("\n• ") : ""
+                }`
               )
             }
             className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${

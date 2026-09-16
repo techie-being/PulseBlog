@@ -1,37 +1,60 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+
+import { useParams, Link, useNavigate } from "react-router-dom";
+
 import { useSelector } from "react-redux";
-import toast from "react-hot-toast";
+
+import toast, { Toaster } from "react-hot-toast";
+
 import axiosInstance from "../api/axiosInstance.js";
+
 import BlockRenderer from "../components/BlockRenderer.component.jsx";
+
 import PostCard from "../components/PostCard.component.jsx";
+
 import Comments from "../components/Comments.component.jsx";
+
 import useGenerateSummary from "../hooks/useGenerateSummary.js";
+
 import SummaryModal from "../components/user-ai/SummaryModal.jsx";
+
 import useSimplifyText from "../hooks/useSimplifyText.js";
+
 import TextSelectionPopup from "../components/user-ai/TextSelectionPopup.jsx";
+import RedirectToSignin from "../components/Redirect.signin.jsx";
 import AskAIModal from "../components/user-ai/AskAIModal.jsx";
 
 const PostDetail = () => {
+  const navigate = useNavigate();
   const { postId } = useParams();
+
   const [post, setPost] = useState(null);
-  const [related, setRelated] = useState([]);
+
   const [loading, setLoading] = useState(true);
+
   const [summaryData, setSummaryData] = useState(null);
+
   const [showSummaryModal, setShowSummaryModal] = useState(false);
+
   const [selectedText, setSelectedText] = useState("");
-  const [popupPosition, setPopupPosition] = useState({
-    x: 0,
-    y: 0,
-  });
+
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
+
   const [showPopup, setShowPopup] = useState(false);
+
   const [showAskAI, setShowAskAI] = useState(false);
 
-  // State for likes
+  // Countdown timer state
+  const [timeLeft, setTimeLeft] = useState(10);
+
+  // Like state
+
   const [isLiked, setIsLiked] = useState(false);
+
   const { isLoggedIn } = useSelector((state) => state.auth);
 
   const { generate, loading: summaryLoading } = useGenerateSummary();
+
   const { askAI, result, loading: aiLoading } = useSimplifyText();
 
   useEffect(() => {
@@ -42,27 +65,36 @@ const PostDetail = () => {
         setLoading(true);
 
         // Fetch main post data and related posts
-        const res = await axiosInstance.get(`/posts/get-post/${postId}`);
-        setPost(res.data.data.post);
-        setRelated(res.data.data.relatedPosts || []);
 
-        // Fire off view count increment quietly
+        const res = await axiosInstance.get(`/posts/get-post/${postId}`);
+
+        const postData = res.data?.data?.post || res.data?.data;
+
+        const relatedData = res.data?.data?.relatedPosts || [];
+
+        setPost(postData);
+
+        setRelated(relatedData);
+
+        // Track views quietly
+
         axiosInstance.get(`/posts/views/${postId}`).catch(() => {});
 
-        // Fetch real like status if the user is authenticated
+        // Fetch user like status if authenticated
+
         if (isLoggedIn) {
           try {
             const likeRes = await axiosInstance.get(
               `/like/post-like-status/${postId}`,
             );
-            setIsLiked(likeRes.data.data === true);
+
+            setIsLiked(likeRes.data?.data === true);
           } catch (err) {
             console.error("Could not fetch like status", err);
           }
         }
       } catch (err) {
         console.error("Failed to load post", err);
-        // Handle 404 naturally via the post null check below
       } finally {
         setLoading(false);
       }
@@ -73,13 +105,27 @@ const PostDetail = () => {
     }
   }, [postId, isLoggedIn]);
 
+  // 10 second countdown effect for guest users
+  useEffect(() => {
+    if (!isLoggedIn && post) {
+      if (timeLeft <= 0) {
+        navigate("/signin", { replace: true });
+        return;
+      }
+
+      const timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [isLoggedIn, post, timeLeft, navigate]);
+
   const handleLikeToggle = async () => {
     if (!isLoggedIn) return toast.error("Sign in to like this post!");
 
-    // 1. Save previous state in case of error
     const previousLikedStatus = isLiked;
 
-    // 2. Update UI immediately (Optimistic)
     setIsLiked(!previousLikedStatus);
 
     try {
@@ -89,8 +135,8 @@ const PostDetail = () => {
         await axiosInstance.patch(`/like/post-liked/${postId}`);
       }
     } catch (err) {
-      // 3. Rollback if the server fails
       setIsLiked(previousLikedStatus);
+
       toast.error(
         err?.response?.data?.message || "Failed to update like status",
       );
@@ -98,6 +144,8 @@ const PostDetail = () => {
   };
 
   const handleGenerateSummary = async () => {
+    if (!post?.content) return;
+
     try {
       const data = await generate(post.content);
 
@@ -111,23 +159,27 @@ const PostDetail = () => {
 
   const handleTextSelection = () => {
     const selection = window.getSelection();
+
     const text = selection.toString().trim();
 
     if (!text || selection.rangeCount === 0) {
       setShowPopup(false);
+
       return;
     }
 
     const range = selection.getRangeAt(0);
+
     const rect = range.getBoundingClientRect();
 
     setSelectedText(text);
 
-    // Using absolute positioning (with page scroll offsets) so the popup follows the exact document flow 
-    // rather than staying fixed to the viewport window.
+    // Modern page coordinate mapping
+
     setPopupPosition({
-      x: rect.left + rect.width / 2 + window.pageXOffset,
-      y: rect.top + window.pageYOffset - 10, // Positioned right above the highlighted text
+      x: rect.left + rect.width / 2 + window.scrollX,
+
+      y: rect.top + window.scrollY - 12,
     });
 
     setShowPopup(true);
@@ -149,97 +201,149 @@ const PostDetail = () => {
 
   if (loading) {
     return (
-      <section className="max-w-3xl mx-auto animate-pulse space-y-6 py-8">
-        <div className="w-full aspect-video bg-grey rounded-xl" />
-        <div className="h-8 w-3/4 bg-grey rounded" />
-        <div className="h-4 w-1/2 bg-grey rounded" />
+      <section className="max-w-3xl mx-auto animate-pulse space-y-6 py-10 px-4">
+        <div className="w-full aspect-video bg-grey/60 dark:bg-gray-800 rounded-2xl" />
+
+        <div className="h-10 w-3/4 bg-grey/60 dark:bg-gray-800 rounded-lg" />
+
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-grey/60 dark:bg-gray-800" />
+
+          <div className="h-4 w-1/3 bg-grey/60 dark:bg-gray-800 rounded" />
+        </div>
       </section>
     );
   }
 
   if (!post) {
     return (
-      <section className="text-center py-24">
-        <p className="text-xl text-dark-grey">Post not found.</p>
-        <Link to="/" className="btn-dark mt-6 inline-block">
-          Go Home
+      <section className="text-center py-28 px-4">
+        <div className="w-16 h-16 bg-grey/40 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+          <i className="fi fi-rr-document-signed text-dark-grey" />
+        </div>
+
+        <p className="text-xl font-medium text-gray-800 dark:text-gray-200 mb-2">
+          Post not found
+        </p>
+
+        <p className="text-xs text-dark-grey mb-6">
+          The article you are looking for may have been moved or removed.
+        </p>
+
+        <Link
+          to="/"
+          className="btn-dark py-2.5 px-6 rounded-full text-sm inline-block"
+        >
+          Return to Home
         </Link>
       </section>
     );
   }
 
   let blocks = [];
+
   try {
-    const parsed = JSON.parse(post.content);
-    blocks = parsed.blocks || [];
+    const parsed =
+      typeof post.content === "string"
+        ? JSON.parse(post.content)
+        : post.content;
+
+    blocks = parsed?.blocks || [];
   } catch {
     blocks = [];
   }
 
   return (
-    <section>
-      <div className="max-w-3xl mx-auto">
-        <img
-          src={post.mediaImage}
-          alt={post.title}
-          className="w-full aspect-video object-cover rounded-xl mb-8"
-        />
+    <section className="py-8 px-4 sm:px-6">
+      <Toaster position="top-center" />
 
-        <h1 className="font-inter text-4xl font-bold mb-4 leading-snug">
+      <div className="max-w-3xl mx-auto">
+        {/* Cover Image */}
+
+        {post.mediaImage && (
+          <img
+            src={post.mediaImage}
+            alt={post.title}
+            className="w-full aspect-video object-cover rounded-2xl mb-8 border border-grey/50 shadow-sm"
+          />
+        )}
+
+        {/* Title */}
+
+        <h1 className="font-gelasio text-3xl sm:text-4xl md:text-5xl font-bold mb-6 leading-tight text-gray-900 ">
           {post.title}
         </h1>
 
-        <div className="flex items-center gap-3 mb-8">
-          <img
-            src={post.owner?.avatar}
-            alt={post.owner?.username}
-            className="w-10 h-10 rounded-full object-cover"
-          />
-          <div>
-            <Link
-              to={`/user/${post.owner?.username}`}
-              className="font-medium capitalize hover:underline"
-            >
-              {post.owner?.username}
-            </Link>
-            <p className="text-sm text-dark-grey">
-              {new Date(post.createdAt).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-              {" · "}
-              {post.views} views
-            </p>
+        {/* Author Header */}
+
+        <div className="flex items-center justify-between border-b border-grey/60 pb-6 mb-8">
+          <div className="flex items-center gap-3">
+            <img
+              src={
+                post.owner?.avatar ||
+                "https://api.dicebear.com/7.x/initials/svg?seed=Author"
+              }
+              alt={post.owner?.username}
+              className="w-11 h-11 rounded-full object-cover border border-grey"
+            />
+
+            <div>
+              <Link
+                to={`/user/${post.owner?.username}`}
+                className="font-medium text-sm text-gray-900  capitalize hover:underline"
+              >
+                {post.owner?.username || "Anonymous"}
+              </Link>
+
+              <p className="text-xs text-dark-grey mt-0.5">
+                {new Date(post.createdAt).toLocaleDateString("en-US", {
+                  year: "numeric",
+
+                  month: "short",
+
+                  day: "numeric",
+                })}
+                {" · "}
+                {post.views || 0} views
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* LIKE BUTTON */}
-        <div className="flex gap-4 items-center my-6">
+        {/* Action Bar (Like & AI Tools) */}
+
+        <div className="flex items-center gap-2 sm:gap-3 ml-auto shrink-0">
+          {/* Like Button */}
+
           <button
+            type="button"
             onClick={handleLikeToggle}
-            className={`w-10 h-10 rounded-full flex items-center justify-center bg-grey ${isLiked ? "text-red-500" : "text-black"}`}
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border transition-all duration-200 active:scale-75 ${
+              isLiked
+                ? "bg-rose-50 text-rose-500  dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/40"
+                : "bg-slate-100/70 text-slate-600  hover:bg-slate-200/60 hover:text-rose-500 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/60 dark:hover:bg-slate-800 dark:hover:text-rose-400"
+            }`}
+            title={isLiked ? "Unlike post" : "Like post"}
           >
             <i
-              className={`fi ${isLiked ? "fi-sr-heart" : "fi-rr-heart"} text-xl`}
+              className={`fi ${isLiked ? "fi-sr-heart" : "fi-rr-heart"} text-base sm:text-lg`}
             />
           </button>
-        </div>
 
-        <div className="flex items-center gap-4 my-6">
+          {/* AI Summary Button */}
+
           <button
+            type="button"
             onClick={handleGenerateSummary}
             disabled={summaryLoading}
-            className="group relative inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-gray-900 bg-white border border-gray-300 shadow-md shadow-gray-200/50 hover:bg-gray-50 hover:border-gray-400 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:shadow-none transition-all duration-300"
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 h-9 sm:h-10 rounded-full text-xs font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all duration-200 active:scale-95 disabled:opacity-60 shrink-0"
           >
             {summaryLoading ? (
               <>
-                {/* Animated Loading Spinner */}
                 <svg
-                  className="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-gray-900"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
+                  className="animate-spin h-3.5 w-3.5 text-slate-700 dark:text-slate-300"
                   viewBox="0 0 24 24"
+                  fill="none"
                 >
                   <circle
                     className="opacity-25"
@@ -248,53 +352,61 @@ const PostDetail = () => {
                     r="10"
                     stroke="currentColor"
                     strokeWidth="4"
-                  ></circle>
+                  />
+
                   <path
                     className="opacity-75"
                     fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
-                <span>Generating...</span>
+
+                <span>Summarizing...</span>
               </>
             ) : (
               <>
-                <span className="text-xs transition-transform duration-300 group-hover:rotate-12">
-                  ✨
-                </span>
-                <span>Generate Summary</span>
+                <span className="text-xs">✨</span>
+
+                <span>AI Summary</span>
               </>
             )}
           </button>
         </div>
 
-        {/* POST CONTENT */}
-        <div onMouseUp={handleTextSelection}>
+        {/* Article Content */}
+
+        <div onMouseUp={handleTextSelection} className="max-w-none mb-12">
           <BlockRenderer blocks={blocks} />
         </div>
 
-        {/* COMMENTS SECTION */}
-        <Comments postId={post._id} />
+        {/* Tags */}
 
         {post.tags?.length > 0 && (
-          <div className="flex gap-2 flex-wrap mt-10 pt-6 border-t border-grey">
+          <div className="flex flex-wrap items-center gap-2 w-full h-auto min-h-fit pb-8 mb-8 border-b border-grey/60 overflow-visible">
             {post.tags.map((tag) => (
-              <span key={tag} className="tag">
-                {tag}
+              <span
+                key={tag}
+                className="text-xs font-medium bg-grey/50 dark:bg-gray-800 text-dark-grey px-3 py-1.5 rounded-full break-words max-w-full"
+              >
+                #{tag}
               </span>
             ))}
           </div>
         )}
 
-        {related.length > 0 && (
-          <div className="mt-12">
-            <h3 className="font-inter text-xl font-bold mb-4">Related Posts</h3>
-            {related.map((p, i) => (
-              <PostCard key={p._id} post={p} index={i} />
-            ))}
+        {/* Timer Banner (placed below tags and above comments) */}
+        {!isLoggedIn && (
+          <div className="mb-8">
+            <RedirectToSignin timeLeft={timeLeft} />
           </div>
         )}
+
+        {/* Comments Section */}
+
+        <Comments postId={post._id} />
       </div>
+
+      {/* AI Context Modals */}
 
       <SummaryModal
         open={showSummaryModal}

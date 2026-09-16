@@ -24,38 +24,83 @@ const ForgotPassword = () => {
     };
 
     return (
-        <section className="h-cover flex items-center justify-center">
-            <Toaster />
-            <form onSubmit={handleSubmit} className="w-[80%] max-w-[400px]">
-                <h1 className="text-4xl font-gelasio capitalize text-center mb-8">
-                    Forgot Password
-                </h1>
-                <p className="text-dark-grey text-center mb-6">
-                    Enter your registered email and we'll send you a secure link to reset your password.
-                </p>
+      <section className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 sm:px-6 py-12 bg-white transition-colors duration-200">
+        <Toaster position="top-center" />
+        
+        <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-sm hover:shadow-md transition-shadow">
+          {/* Subtle Icon Badge */}
+          <div className="w-12 h-12 rounded-full bg-slate-50/80 text-slate-800 border border-slate-200 flex items-center justify-center mx-auto mb-5 shrink-0">
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+
+          {/* Heading & Subtitle */}
+          <h1 className="font-gelasio text-2xl sm:text-3xl font-bold text-slate-900 text-center mb-2 tracking-tight">
+            Forgot Password?
+          </h1>
+          <p className="text-slate-600 text-sm text-center mb-8 leading-relaxed">
+            Enter your registered email and we'll send you a secure link to reset your password.
+          </p>
+
+          {/* Reset Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-2">
+                Email Address
+              </label>
+              <div className="relative flex items-center">
+                <span className="absolute left-3.5 text-slate-400 pointer-events-none">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </span>
                 <input
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="input-box mb-4"
-                    disabled={loading}
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  required
+                  className="w-full pl-11 pr-4 py-2.5 sm:py-3 text-sm text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white focus:border-slate-800 focus:ring-2 focus:ring-slate-900/10 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-150 placeholder:text-slate-400"
                 />
-                <button
-                    type="submit"
-                    className="btn-dark center mt-4 w-full"
-                    disabled={loading}
-                >
-                    {loading ? "Sending Link..." : "Send Reset Link"}
-                </button>
-                <div className="mt-6 text-dark-grey text-center">
-                    Remembered your password?{" "}
-                    <Link to="/signin" className="underline text-black text-xl ml-1">
-                        Sign in
-                    </Link>
-                </div>
-            </form>
-        </section>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-11 sm:h-12 mt-2 inline-flex items-center justify-center gap-2 px-6 text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-all duration-150 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <span>Sending Link...</span>
+                </>
+              ) : (
+                <span>Send Reset Link</span>
+              )}
+            </button>
+          </form>
+
+          {/* Footer Back Link */}
+          <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+            <p className="text-xs sm:text-sm text-slate-600">
+              Remembered your password?{" "}
+              <Link 
+                to="/signin" 
+                className="font-semibold text-slate-900 hover:underline underline-offset-4 transition-colors"
+              >
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </div>
+      </section>
     );
 };
 

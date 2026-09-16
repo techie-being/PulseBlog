@@ -40,53 +40,68 @@ const Comments = ({ postId }) => {
       toast.error(err?.response?.data?.message || "Failed to add comment");
     }
   };
+
   return (
-    <div className="mt-12 pt-8 border-t border-grey">
-      <h3 className="font-inter text-xl font-bold mb-6">
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-grey">
+      <h3 className="font-inter text-lg sm:text-xl font-bold mb-4 sm:mb-6 text-gray-900 dark:text-white">
         Comments ({comments.length})
       </h3>
 
-      <form onSubmit={handleCommentSubmit} className="flex gap-4 mb-8">
-        <input
-          type="text"
+      {/* Auto-Expanding Input Container with Embedded Post Button */}
+      <form onSubmit={handleCommentSubmit} className="relative w-full mb-6 sm:mb-8">
+        <textarea
+          rows={2}
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder="Write a comment..."
-          className="input-box w-full pl-4"
+          className="input-box w-full pl-4 pr-24 pt-3 pb-10 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple/50 rounded-xl resize-none min-h-[90px] block"
         />
         <button
           type="submit"
-          className="btn-dark px-6 py-2 transition-transform duration-100 active:scale-95"
+          className="btn-dark absolute right-2 bottom-2 px-4 sm:px-5 py-1.5 text-xs sm:text-sm shrink-0 transition-transform duration-100 active:scale-95 rounded-lg z-10"
         >
           Post
         </button>
       </form>
 
-      <div className="space-y-6">
+      {/* Comment List Container */}
+      <div className="space-y-4 sm:space-y-6">
         {comments.length === 0 ? (
-          <p className="text-dark-grey text-center">No comments yet.</p>
+          <p className="text-dark-grey text-center py-6 text-sm sm:text-base">
+            No comments yet. Be the first to share your thoughts!
+          </p>
         ) : (
           comments.map((c) => (
-            <div key={c._id} className="p-4 bg-grey rounded-xl">
-              <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center gap-2">
-                  {c.commentUserId?.avatar && (
+            <div key={c._id} className="p-3.5 sm:p-5 bg-grey rounded-xl transition-all duration-200 block w-full">
+              <div className="flex flex-wrap sm:flex-nowrap justify-between items-center gap-2 mb-2 sm:mb-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {c.commentUserId?.avatar ? (
                     <img
                       src={c.commentUserId.avatar}
-                      className="w-6 h-6 rounded-full object-cover"
-                      alt=""
+                      className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover shrink-0"
+                      alt={c.commentUserId?.username || "User avatar"}
+                      loading="lazy"
                     />
+                  ) : (
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple/20 text-purple flex items-center justify-center font-bold text-xs shrink-0">
+                      {(c.commentUserId?.username || "U").charAt(0).toUpperCase()}
+                    </div>
                   )}
-                  {/* FIX: was c.owner?.username — backend field is commentUserId */}
-                  <p className="font-medium text-sm capitalize">
+                  <p className="font-medium text-xs sm:text-sm capitalize truncate text-gray-900 dark:text-white">
                     {c.commentUserId?.username || "User"}
                   </p>
                 </div>
-                <p className="text-xs text-dark-grey">
-                  {new Date(c.createdAt).toLocaleDateString()}
+                <p className="text-[11px] sm:text-xs text-dark-grey shrink-0">
+                  {new Date(c.createdAt).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
                 </p>
               </div>
-              <p className="text-dark-grey">{c.content}</p>
+              <p className="text-dark-grey text-sm sm:text-base leading-relaxed break-all sm:break-words whitespace-pre-wrap pl-0 sm:pl-10 w-full">
+                {c.content}
+              </p>
             </div>
           ))
         )}
