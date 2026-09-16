@@ -43,13 +43,20 @@ const createPost = Asynchandler(async (req, res) => {
 
   // Handle tags: convert comma-separated string to array
   let tagsArray = [];
-  if (tags && typeof tags === "string") {
-    tagsArray = tags
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter((tag) => tag !== "");
-  } else if (Array.isArray(tags)) {
-    tagsArray = tags;
+  if (tags) {
+    if (typeof tags === "string") {
+      try {
+        const parsed = JSON.parse(tags);
+        tagsArray = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (e) {
+        tagsArray = tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter((tag) => tag !== "");
+      }
+    } else if (Array.isArray(tags)) {
+      tagsArray = tags;
+    }
   }
 
   const createdPost = await Post.create({
@@ -69,9 +76,16 @@ const createPost = Asynchandler(async (req, res) => {
 
 //home feed
 const getAllPost = Asynchandler(async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
+  const { page = 1, limit = 10, category } = req.query;
 
+  // Build basic filter query
   const filter = { isPublished: true };
+
+  // Add category filter if provided and not "All"
+  // 2. Query the 'tags' array instead of 'category'
+  if (category && category !== "All") {
+    filter.tags = { $regex: new RegExp(`^${category}$`, "i") };
+  }
 
   const latestPosts = async () => {
     const result = await paginateQuery(Post, filter, page, limit, {
@@ -94,11 +108,17 @@ const getAllPost = Asynchandler(async (req, res) => {
     vector.every((v) => v === 0);
 
   if (isColdStart) {
-    console.log("Cold start user detected. Returning latest posts.");
+    console.log("Cold start user detected or category filter applied. Returning latest posts.");
     return latestPosts();
   }
 
   console.log("Using personalized feed");
+
+  // Build match stage dynamically for aggregation
+  const matchStage = { isPublished: true };
+  if (category && category !== "All") {
+    matchStage.category = { $regex: new RegExp(`^${category}$`, "i") };
+  }
 
   const smartFeed = [
     {
@@ -111,9 +131,7 @@ const getAllPost = Asynchandler(async (req, res) => {
       },
     },
     {
-      $match: {
-        isPublished: true,
-      },
+      $match: matchStage,
     },
     {
       $lookup: {
@@ -138,9 +156,9 @@ const getAllPost = Asynchandler(async (req, res) => {
 
   const result = await paginateAggregate(Post, smartFeed, page, limit);
 
-  // No vector matches → fallback to latest posts
-  if (result.data.length === 0) {
-    console.log("No vector matches found. Returning latest posts.");
+  // No vector matches → fallback to latest posts with category filter
+  if (!result?.data || result.data.length === 0) {
+    console.log("No vector matches found. Returning filtered latest posts.");
     return latestPosts();
   }
 
@@ -152,7 +170,6 @@ const getAllPost = Asynchandler(async (req, res) => {
     )
   );
 });
-
 //it converts title in to slug then find post and return it
 // using search
 
@@ -229,7 +246,7 @@ const deletePost = Asynchandler(async (req, res) => {
 //slug and post id may create a mesh be careful while testing
 const updatePost = Asynchandler(async (req, res) => {
   const { postId } = req.params;
-  const { title, content } = req.body;
+  const { title, content, tags } = req.body; // 1. Destructure tags
   const findPost = await Post.findById(postId);
 
   if (!findPost) {
@@ -240,8 +257,6 @@ const updatePost = Asynchandler(async (req, res) => {
     throw new Apierror(403, "unauthorize to perform update request");
   }
 
-  //here we cannot put findpost.content because it overwrites the exiting content instead of just updating
-
   if (title) {
     findPost.title = title;
   }
@@ -250,16 +265,33 @@ const updatePost = Asynchandler(async (req, res) => {
     findPost.content = content;
   }
 
-  console.log("does file is coming", req.file);
+  // 2. Parse and update tags
+  if (tags !== undefined) {
+    let parsedTags = tags;
 
-  console.log("File received:", req.file); // If this is undefined, it's a Multer/Postman issue
+    if (typeof tags === "string") {
+      try {
+        parsedTags = JSON.parse(tags);
+      } catch (e) {
+        parsedTags = tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean);
+      }
+    }
+
+    findPost.tags = Array.isArray(parsedTags) ? parsedTags : [];
+  }
+
+  console.log("does file is coming", req.file);
+  console.log("File received:", req.file);
 
   if (req.file) {
     const existingImage = findPost.mediaImage;
     console.log("Old Image URL:", existingImage);
 
     const newImage = await cloudinaryUploader(req.file.path);
-    console.log("Cloudinary Upload Result:", newImage); // If this is null, check your Cloudinary config
+    console.log("Cloudinary Upload Result:", newImage);
 
     if (!newImage) {
       throw new Apierror(500, "Something went wrong while uploading new image");
