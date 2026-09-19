@@ -13,11 +13,11 @@ import {
   updateAvatar,
   updateCoverImage,
   refreshToken,
-  userProfileDetails ,
+  userProfileDetails,
   completeOnboarding,
+  skipOnboarding,
   AccessTokenOptions,
   RefreshTokenOptions,
-
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middlewares.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
@@ -30,12 +30,12 @@ router.route("/register").post(registerUser);
 
 // Step 2: Media upload (Requires being logged in)
 router.route("/setup-account").patch(
-  verifyJwt, 
+  verifyJwt,
   upload.fields([
     { name: "avatar", maxCount: 1 },
-    { name: "coverImage", maxCount: 1 }
+    { name: "coverImage", maxCount: 1 },
   ]),
-  setupAccount
+  setupAccount,
 );
 router.route("/forgot-password").post(forgotPassword);
 router.route("/reset-password/:token").patch(resetPassword);
@@ -43,31 +43,28 @@ router.route("/Login").post(userLogin);
 router.route("/Logout").post(verifyJwt, userLogout);
 router.route("/refresh-token").post(refreshToken);
 router.route("/current-user").get(verifyJwt, getCurrentUser);
-router.route("/change-password").patch(verifyJwt,changePassword)
+router.route("/change-password").patch(verifyJwt, changePassword);
 router.route("/update-account").patch(verifyJwt, upload.single("avatar"), updateAccountDetails);
-router.route("/update-avatar").patch(verifyJwt,upload.single("avatar"),updateAvatar)
-router.route("/update-coverImage").patch(verifyJwt,upload.single("coverImage"),updateCoverImage)
+router.route("/update-avatar").patch(verifyJwt, upload.single("avatar"), updateAvatar);
+router.route("/update-coverImage").patch(verifyJwt, upload.single("coverImage"), updateCoverImage);
 //search profile
-router.route("/profile-details/:username").get(getOptionalUser,userProfileDetails )
-router.route("/complete-onboarding").patch(verifyJwt,completeOnboarding)
-
-
-
-
+router.route("/profile-details/:username").get(getOptionalUser, userProfileDetails);
+router.route("/complete-onboarding").patch(verifyJwt, completeOnboarding);
+router.route("/skip-onboarding").patch(verifyJwt, skipOnboarding);
 
 // Social Auth routes
 router.route("/google").get(
   passport.authenticate("google", {
     scope: ["profile", "email"], // Must be exactly 'scope'
-    prompt: "select_account"
-  })
+    prompt: "select_account",
+  }),
 );
 
 // Route Google redirects back to
 router.route("/google/callback").get(
-  passport.authenticate("google", { 
-    session: false, 
-    failureRedirect: `${process.env.FRONTEND_URL}/login-failed` 
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: `${process.env.FRONTEND_URL}/login-failed`,
   }),
   async (req, res) => {
     try {
@@ -78,23 +75,20 @@ router.route("/google/callback").get(
       }
 
       // Generate your system's custom JWTs
-      const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
-
-      
+      const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+        user._id,
+      );
 
       // Send cookies and redirect to frontend
       res
-        .cookie("accessToken", accessToken,AccessTokenOptions)
+        .cookie("accessToken", accessToken, AccessTokenOptions)
         .cookie("refreshToken", refreshToken, RefreshTokenOptions)
         .redirect(`${process.env.FRONTEND_URL}/login-success`);
-
-    } 
-
-    catch (error) {
+    } catch (error) {
       console.error("Callback Error:", error);
       res.redirect(`${process.env.FRONTEND_URL}/login-failed`);
     }
-  }
+  },
 );
 
 export { router };
