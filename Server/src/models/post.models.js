@@ -23,7 +23,7 @@ const postSchema = new Schema(
             type:[Number],
             default:() => new Array(384).fill(0)
         },
-
+        
         mediaImage:{
             type:String,
             required:true,  
