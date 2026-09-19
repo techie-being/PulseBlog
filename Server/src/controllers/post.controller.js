@@ -446,14 +446,27 @@ const togglePostStatus = Asynchandler(async (req, res) => {
 
 const searchPostsDiscovery = Asynchandler(async (req, res) => {
   console.log("=== searchPostsDiscovery HIT ===");
+
   const { query, page = 1, limit = 10 } = req.query;
 
-  if (!query) {
+  if (!query || !query.trim()) {
     throw new Apierror(400, "Search query is required");
   }
 
-  const vector = await generateEmbedding(query);
+  const searchQuery = query.trim();
 
+  // Generate embedding for the search query
+  const vector = await generateEmbedding(searchQuery);
+
+  if (!vector || vector.length !== 384) {
+    throw new Apierror(500, "Search embedding could not be generated");
+  }
+
+  /*
+   * Get a larger semantic candidate pool first.
+   *
+   * We paginate AFTER relevance filtering.
+   */
   const pipeline = [
     {
       $vectorSearch: {
@@ -461,8 +474,18 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
         path: "contentVector",
         queryVector: vector,
         numCandidates: 100,
-        limit: 10,
-        filter: { isPublished: { $eq: true } },
+        limit: 50,
+        filter: {
+          isPublished: { $eq: true },
+        },
+      },
+    },
+
+    {
+      $addFields: {
+        searchScore: {
+          $meta: "vectorSearchScore",
+        },
       },
     },
 
@@ -474,20 +497,9 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
         as: "owner",
       },
     },
-    {
-      $unwind: "$owner",
-    },
-    {
-      $addFields: {
-        searchScore: { $meta: "vectorSearchScore" },
-        viewsCount: {
-          $ifNull: ["$views", 0],
-        },
-      },
-    },
 
     {
-      $sort: { searchScore: -1 }, // CRITICAL FIX: Lock Rome at the top based on AI score
+      $unwind: "$owner",
     },
 
     {
@@ -497,21 +509,189 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
         contentVector: 0,
       },
     },
-  ];
-  console.log("pipeline is array of stages?", pipeline[0]);
 
+    {
+      $sort: {
+        searchScore: -1,
+      },
+    },
+  ];
+
+  const candidates = await Post.aggregate(pipeline);
+
+  /*
+   * Normalize query.
+   *
+   * Example:
+   * "  SuperHero  " -> "superhero"
+   */
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  /*
+   * Split query into individual words.
+   *
+   * "machine learning"
+   * -> ["machine", "learning"]
+   */
+  const queryWords = normalizedQuery
+    .split(/\s+/)
+    .filter((word) => word.length >= 2);
+
+  /*
+   * --------------------------------------------------
+   * RELEVANCE FILTER
+   * --------------------------------------------------
+   *
+   * We use lexical evidence to validate semantic results.
+   */
+  const relevantPosts = candidates.filter((post) => {
+    const title =
+      typeof post.title === "string" ? post.title.toLowerCase() : "";
+
+    const content =
+      typeof post.content === "string" ? post.content.toLowerCase() : "";
+
+    const tags = Array.isArray(post.tags)
+      ? post.tags.map((tag) => String(tag).toLowerCase())
+      : [];
+
+    /*
+     * Exact phrase match.
+     *
+     * Example:
+     * query = "machine learning"
+     *
+     * title/content/tag containing the complete phrase
+     * gets strong lexical evidence.
+     */
+    const exactPhraseMatch =
+      title.includes(normalizedQuery) ||
+      content.includes(normalizedQuery) ||
+      tags.some((tag) => tag.includes(normalizedQuery));
+
+    /*
+     * Individual query-word matching.
+     *
+     * This helps multi-word queries such as:
+     *
+     * "machine learning"
+     *
+     * where the two words may appear separately.
+     */
+    const matchedWords = queryWords.filter(
+      (word) =>
+        title.includes(word) ||
+        content.includes(word) ||
+        tags.some((tag) => tag.includes(word)),
+    );
+
+    
+
+    /*
+     * Tag/title matches are particularly strong signals
+     * because they represent explicit metadata/content
+     * supplied by the author.
+     */
+    const titleMatch = title.includes(normalizedQuery);
+
+    const tagMatch = tags.some((tag) => tag.includes(normalizedQuery));
+
+    /*
+     * For a single-word query:
+     *
+     * superhero -> Avengers
+     *
+     * tagMatch = true
+     *
+     * For:
+     *
+     * xyzabc123 -> random post
+     *
+     * no lexical evidence.
+     */
+    const strongLexicalMatch = exactPhraseMatch || titleMatch || tagMatch;
+
+    /*
+     * A semantic result is accepted only when there is
+     * supporting lexical evidence.
+     *
+     * We deliberately do NOT use:
+     *
+     * searchScore >= 0.57
+     *
+     * by itself.
+     */
+    const hasLexicalEvidence =
+      strongLexicalMatch ||
+      (queryWords.length > 1 && matchedWords.length === queryWords.length);
+
+    /*
+     * Require a reasonable semantic relationship too.
+     *
+     * This prevents a completely unrelated post that
+     * happens to contain one common query word from
+     * automatically becoming a result.
+     */
+    const hasSemanticSupport = post.searchScore >= 0.45;
+
+    const isRelevant = hasLexicalEvidence && hasSemanticSupport;
+
+    return isRelevant;
+  });
+
+  /*
+   * Debug information
+   */
   console.log(
-    pipeline.map((p) => ({
-      title: p.title,
-      isPublished: p.isPublished,
+    "🔎 Search candidates:",
+    candidates.map((post) => ({
+      title: post.title,
+      score: post.searchScore,
+      tags: post.tags,
     })),
   );
 
-  const result = await paginateAggregate(Post, pipeline, page, limit);
-  console.log(result.data);
+  console.log(
+    "✅ Relevant search results:",
+    relevantPosts.map((post) => ({
+      title: post.title,
+      score: post.searchScore,
+      tags: post.tags,
+    })),
+  );
+
+  /*
+   * --------------------------------------------------
+   * PAGINATION
+   * --------------------------------------------------
+   */
+
+  const pageNum = Math.max(1, Number(page));
+  const limitNum = Math.max(1, Number(limit));
+
+  const totalItems = relevantPosts.length;
+
+  const totalPages = Math.ceil(totalItems / limitNum);
+
+  const skip = (pageNum - 1) * limitNum;
+
+  const data = relevantPosts.slice(skip, skip + limitNum);
+
+  const result = {
+    data,
+
+    pagination: {
+      totalItems,
+      totalPages,
+      currentPage: pageNum,
+      hasNextPage: pageNum < totalPages,
+      hasPrevPage: pageNum > 1,
+    },
+  };
+
   return res
     .status(200)
-    .json(new Apiresponse(200, result, "Top posts recommended successfully"));
+    .json(new Apiresponse(200, result, "Search results fetched successfully"));
 });
 
 const viewsCount = Asynchandler(async (req, res) => {
