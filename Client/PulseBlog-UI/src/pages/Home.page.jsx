@@ -9,7 +9,6 @@ const CATEGORIES = [
   "Technology",
   "Programming",
   "AI",
-  "Design",
   "Business",
   "Productivity",
 ];
@@ -35,7 +34,7 @@ const HomePage = () => {
 
       const categoryParam = category !== "All" ? `&category=${encodeURIComponent(category)}` : "";
       const response = await axiosInstance.get(
-        `/posts/get-all-posts?page=${pageNum}&limit=10${categoryParam}`
+        `/posts/get-all-posts?page=${pageNum}&limit=5${categoryParam}`
       );
 
       const resultPayload = response.data?.data;

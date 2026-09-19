@@ -48,13 +48,10 @@ const PostDetail = () => {
   const [timeLeft, setTimeLeft] = useState(10);
 
   // Like state
-
   const [isLiked, setIsLiked] = useState(false);
 
   const { isLoggedIn } = useSelector((state) => state.auth);
-
   const { generate, loading: summaryLoading } = useGenerateSummary();
-
   const { askAI, result, loading: aiLoading } = useSimplifyText();
 
   useEffect(() => {
@@ -70,11 +67,7 @@ const PostDetail = () => {
 
         const postData = res.data?.data?.post || res.data?.data;
 
-        const relatedData = res.data?.data?.relatedPosts || [];
-
         setPost(postData);
-
-        setRelated(relatedData);
 
         // Track views quietly
 
@@ -122,19 +115,31 @@ const PostDetail = () => {
   }, [isLoggedIn, post, timeLeft, navigate]);
 
   const handleLikeToggle = async () => {
-    if (!isLoggedIn) return toast.error("Sign in to like this post!");
+    if (!isLoggedIn) {
+      return toast.error("Sign in to like this post!");
+    }
 
     const previousLikedStatus = isLiked;
+
+    console.log("BEFORE CLICK:", previousLikedStatus);
 
     setIsLiked(!previousLikedStatus);
 
     try {
       if (previousLikedStatus) {
+        console.log("CALLING UNLIKE");
+
         await axiosInstance.patch(`/like/unlike-post/${postId}`);
       } else {
+        console.log("CALLING LIKE");
+
         await axiosInstance.patch(`/like/post-liked/${postId}`);
       }
+
+      console.log("LIKE REQUEST SUCCESS");
     } catch (err) {
+      console.log("LIKE REQUEST FAILED:", err?.response?.data);
+
       setIsLiked(previousLikedStatus);
 
       toast.error(
@@ -318,15 +323,29 @@ const PostDetail = () => {
           <button
             type="button"
             onClick={handleLikeToggle}
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border transition-all duration-200 active:scale-75 ${
-              isLiked
-                ? "bg-rose-50 text-rose-500  dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/40"
-                : "bg-slate-100/70 text-slate-600  hover:bg-slate-200/60 hover:text-rose-500 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700/60 dark:hover:bg-slate-800 dark:hover:text-rose-400"
-            }`}
+            className={`
+    w-9 h-9
+    sm:w-10 sm:h-10
+    rounded-full
+    flex items-center justify-center
+    border
+    transition-all duration-200
+    active:scale-75
+    ${
+      isLiked
+        ? "bg-rose-50 text-rose-500 border-rose-200 hover:bg-rose-100"
+        : "bg-white text-black border-black hover:bg-gray-100"
+    }
+  `}
             title={isLiked ? "Unlike post" : "Like post"}
           >
             <i
-              className={`fi ${isLiked ? "fi-sr-heart" : "fi-rr-heart"} text-base sm:text-lg`}
+              className={`
+      fi
+      ${isLiked ? "fi-sr-heart" : "fi-rr-heart"}
+      text-base
+      sm:text-lg
+    `}
             />
           </button>
 

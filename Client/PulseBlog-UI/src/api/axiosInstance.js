@@ -39,7 +39,6 @@ axiosInstance.interceptors.response.use(
 
   // Failed response
   async (error) => {
-    
     console.log("🔥 AXIOS ERROR:", error);
     console.log("🔥 MESSAGE:", error.message);
     console.log("🔥 CODE:", error.code);
@@ -53,11 +52,28 @@ axiosInstance.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // Never try to refresh the refresh-token request itself
     if (originalRequest.url?.includes("/refresh-token")) {
       return Promise.reject(error);
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    /*
+     * These endpoints can legitimately return 401.
+     * Their 401 response should go directly back to the component
+     * instead of triggering the refresh-token flow.
+     */
+    const isAuthRequest =
+      originalRequest.url?.includes("/login") ||
+      originalRequest.url?.includes("/register") ||
+      originalRequest.url?.includes("/forgot-password") ||
+      originalRequest.url?.includes("/reset-password") ||
+      originalRequest.url?.includes("/google");
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthRequest
+    ) {
       console.log("🔥 401 detected → trying refresh");
 
       originalRequest._retry = true;
@@ -68,14 +84,13 @@ axiosInstance.interceptors.response.use(
         return axiosInstance(originalRequest);
       } catch (refreshError) {
         console.error("Session expired:", refreshError);
+
         return Promise.reject(refreshError);
       }
     }
 
     return Promise.reject(error);
   },
-
-  // All other errors
 );
 
 export default axiosInstance;
