@@ -5,48 +5,65 @@ import { Like } from "../models/likes.models.js";
 import { User } from "../models/user.models.js";
 import { Post } from "../models/post.models.js";
 import { paginateQuery } from "../utils/pagination.js";
+import {userSyncVector} from "../Services/userprofileSync.services.js"
 
 const likedPost = Asynchandler(async (req, res) => {
+  console.log("🔥🔥 likedPost CONTROLLER HIT");
   const { postId } = req.params;
 
-  // 1. Ensure user is present (prevents 'undefined' error)
+  // 1. Ensure user is present
   if (!req.user?._id) {
     throw new Apierror(401, "You must be logged in to like posts");
   }
-  
+
   const userId = req.user._id;
 
   // 2. Check if post exists
   const post = await Post.findById(postId);
+
   if (!post) {
     throw new Apierror(404, "Post not found");
   }
 
-  // 3. Check for existing like using the correct field: 'likedBy'
-  const existingLike = await Like.findOne({ postId, likedBy: userId });
+  // 3. Check existing like
+  const existingLike = await Like.findOne({
+    postId,
+    likedBy: userId,
+  });
+
   if (existingLike) {
     throw new Apierror(400, "Post has been liked by you already");
   }
 
-  // 4. Create the like using 'likedBy' (Matches your Schema)
+  // 4. Create like
   await Like.create({
     postId,
-    likedBy: userId, 
+    likedBy: userId,
   });
 
-  // 5. Update the count
+  // 5. Update user's interest vector
+  await userSyncVector(userId);
+
+  // 6. Update like count
   const updatedPost = await Post.findByIdAndUpdate(
     postId,
     { $inc: { likeCount: 1 } },
     { new: true }
   );
 
-  if (!updatedPost) throw new Apierror(500, "Failed to update like count");
+  if (!updatedPost) {
+    throw new Apierror(500, "Failed to update like count");
+  }
 
   return res.status(200).json(
-    new Apiresponse(200, updatedPost.likeCount, "User liked successfully")
+    new Apiresponse(
+      200,
+      updatedPost.likeCount,
+      "User liked successfully"
+    )
   );
 });
+
 
 const getLikedList = Asynchandler(async (req, res) => {
   const { postId } = req.params;
@@ -64,24 +81,35 @@ const getLikedList = Asynchandler(async (req, res) => {
 });
 
 const unlikePost = Asynchandler(async (req, res) => {
-  
   const { postId } = req.params;
 
-  const userId = req.user._id;
+  const userId = req.user?._id;
+
+  if (!userId) {
+    throw new Apierror(401, "You must be logged in to unlike posts");
+  }
 
   const post = await Post.findById(postId);
 
   if (!post) {
-    throw new Apierror(200, "post does not exist");
+    throw new Apierror(404, "Post does not exist");
   }
 
-  const likedPostExist = await Like.findOne({ postId, likedBy: userId });
+  const likedPostExist = await Like.findOne({
+    postId,
+    likedBy: userId,
+  });
 
   if (!likedPostExist) {
-    throw new Apierror(400, "post is not liked yet");
+    throw new Apierror(400, "Post is not liked yet");
   }
 
-  await Like.findOneAndDelete({ postId, likedBy: userId });
+  await Like.findOneAndDelete({
+    postId,
+    likedBy: userId,
+  });
+
+  await userSyncVector(userId);
 
   const updatedPost = await Post.findByIdAndUpdate(
     postId,
@@ -93,15 +121,17 @@ const unlikePost = Asynchandler(async (req, res) => {
     { new: true },
   );
 
-  return res
-    .status(200)
-    .json(
-      new Apiresponse(
-        200,
-        updatedPost.likeCount,
-        "User successfully unliked the post",
-      ),
-    );
+  if (!updatedPost) {
+    throw new Apierror(500, "Failed to update like count");
+  }
+
+  return res.status(200).json(
+    new Apiresponse(
+      200,
+      updatedPost.likeCount,
+      "User successfully unliked the post",
+    ),
+  );
 });
 
 const likedStatus = Asynchandler(async (req, res) => {
