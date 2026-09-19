@@ -78,19 +78,28 @@ const createPost = Asynchandler(async (req, res) => {
 const getAllPost = Asynchandler(async (req, res) => {
   const { page = 1, limit = 10, category } = req.query;
 
-  // Build basic filter query
-  const filter = { isPublished: true };
+  // BASIC FILTER
+  const filter = {
+    isPublished: true,
+  };
 
-  // Add category filter if provided and not "All"
-  // 2. Query the 'tags' array instead of 'category'
+  // Category filter
   if (category && category !== "All") {
-    filter.tags = { $regex: new RegExp(`^${category}$`, "i") };
+    filter.tags = {
+      $regex: new RegExp(`^${category}$`, "i"),
+    };
   }
 
+  // LATEST POSTS
   const latestPosts = async () => {
     const result = await paginateQuery(Post, filter, page, limit, {
-      populate: { path: "owner", select: "username avatar" },
-      sort: { createdAt: -1 },
+      populate: {
+        path: "owner",
+        select: "username avatar",
+      },
+      sort: {
+        createdAt: -1,
+      },
     });
 
     return res
@@ -98,26 +107,52 @@ const getAllPost = Asynchandler(async (req, res) => {
       .json(new Apiresponse(200, result, "Posts fetched successfully"));
   };
 
-  // Cold Start Detection
+  // PERSONALIZATION CHECK
   const vector = req.user?.userIntrestVector;
 
-  const isColdStart =
-    !req.user ||
-    !Array.isArray(vector) ||
-    vector.length !== 384 ||
-    vector.every((v) => v === 0);
+  const behavioralSignalCount = req.user?.behavioralSignalCount ?? 0;
 
-  if (isColdStart) {
-    console.log("Cold start user detected or category filter applied. Returning latest posts.");
+  const hasValidVector =
+    Array.isArray(vector) &&
+    vector.length === 384 &&
+    vector.some((value) => value !== 0);
+
+  const hasExplicitProfile =
+    Array.isArray(req.user?.explicitPreferences) &&
+    req.user.explicitPreferences.length > 0;
+
+  const hasEnoughBehavioralData = behavioralSignalCount >= 3;
+
+  const shouldUsePersonalizedFeed =
+    hasValidVector && (hasExplicitProfile || hasEnoughBehavioralData);
+
+  // COLD START / NOT READY
+  if (!shouldUsePersonalizedFeed) {
+    console.log("🧊 Using latest feed", {
+      hasExplicitProfile,
+      behavioralSignalCount,
+      hasValidVector,
+    });
+
     return latestPosts();
   }
 
-  console.log("Using personalized feed");
+  // PERSONALIZED FEED
+  console.log("🎯 Using personalized feed", {
+    hasExplicitProfile,
+    behavioralSignalCount,
+  });
 
-  // Build match stage dynamically for aggregation
-  const matchStage = { isPublished: true };
+  // Match stage
+  const matchStage = {
+    isPublished: true,
+  };
+
+  // Category filter
   if (category && category !== "All") {
-    matchStage.category = { $regex: new RegExp(`^${category}$`, "i") };
+    matchStage.tags = {
+      $regex: new RegExp(`^${category}$`, "i"),
+    };
   }
 
   const smartFeed = [
@@ -126,19 +161,27 @@ const getAllPost = Asynchandler(async (req, res) => {
         index: "vector_index",
         path: "contentVector",
         queryVector: vector,
+
+        // Search enough candidates so pagination
+        // has posts available to work with.
         numCandidates: 100,
+
         limit: 100,
       },
     },
+
     {
       $match: matchStage,
     },
+
+    // Get author information
     {
       $lookup: {
         from: "users",
         localField: "owner",
         foreignField: "_id",
         as: "owner",
+
         pipeline: [
           {
             $project: {
@@ -149,6 +192,7 @@ const getAllPost = Asynchandler(async (req, res) => {
         ],
       },
     },
+
     {
       $unwind: "$owner",
     },
@@ -156,19 +200,24 @@ const getAllPost = Asynchandler(async (req, res) => {
 
   const result = await paginateAggregate(Post, smartFeed, page, limit);
 
-  // No vector matches → fallback to latest posts with category filter
+  console.log("🎯 PERSONALIZED PAGINATION:", result.pagination);
+  console.log("🎯 PERSONALIZED POSTS:", result.data.length);
+
   if (!result?.data || result.data.length === 0) {
-    console.log("No vector matches found. Returning filtered latest posts.");
+    console.log("No personalized posts found. Returning latest posts.");
+
     return latestPosts();
   }
 
-  return res.status(200).json(
-    new Apiresponse(
-      200,
-      result,
-      "User preference related posts fetched successfully"
-    )
-  );
+  return res
+    .status(200)
+    .json(
+      new Apiresponse(
+        200,
+        result,
+        "User preference related posts fetched successfully",
+      ),
+    );
 });
 //it converts title in to slug then find post and return it
 // using search
