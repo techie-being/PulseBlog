@@ -358,31 +358,36 @@ const getCurrentUser = Asynchandler(async (req, res) => {
 });
 
 const changePassword = Asynchandler(async (req, res) => {
-  const { oldPassword, newPassword } = req.body;
+  const { newPassword, confirmPassword } = req.body;
 
-  if ([oldPassword, newPassword].some((field) => field?.trim() === "")) {
-    throw new Apierror(402, "All fields are necessary");
+  if (!newPassword?.trim() || !confirmPassword?.trim()) {
+    throw new Apierror(400, "All fields are necessary");
   }
 
-  //this may be frontend logic or we need it even here
-  else if (oldPassword === newPassword) {
-    throw new Apierror(402, "old and new Passwords are same ");
+  if (newPassword !== confirmPassword) {
+    throw new Apierror(400, "Passwords do not match");
   }
 
-  const user = await User.findById(req.user?._id);
+  const user = await User.findById(req.user._id);
 
-  const verifyPassword = await user.isPasswordCorrect(oldPassword);
-
-  if (!verifyPassword) {
-    throw new Apierror(402, "Password does not match");
+  if (!user) {
+    throw new Apierror(404, "User not found");
   }
 
   user.password = newPassword;
-  await user.save({ validateBeforeSave: false });
+
+  // Runs password hashing middleware
+  await user.save();
 
   return res
     .status(200)
-    .json(new Apiresponse(200, {}, "Password changed successfully"));
+    .json(
+      new Apiresponse(
+        200,
+        {},
+        "Password changed successfully"
+      )
+    );
 });
 
 const updateAccountDetails = Asynchandler(async (req, res) => {
