@@ -7,7 +7,7 @@ import { generateEmbedding } from "../utils/Embedding.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import crypto from "crypto";
-import {sendEmail} from "../utils/sendEmail.js";
+import { sendEmail } from "../utils/sendEmail.js";
 
 const RefreshTokenOptions = {
   httpOnly: true,
@@ -63,12 +63,16 @@ const registerUser = Asynchandler(async (req, res) => {
 
   // --- NEW LOGIC START ---
   // 1. Generate tokens for the new user so they are logged in immediately
-  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
+  const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
+    user._id,
+  );
 
   // 2. Cookie options are defined globally at the top
   // --- NEW LOGIC END ---
 
-  const createdUser = await User.findById(user._id).select("-password -refreshToken");
+  const createdUser = await User.findById(user._id).select(
+    "-password -refreshToken",
+  );
 
   if (!createdUser) {
     throw new Apierror(500, "Something went wrong while registering the user");
@@ -80,17 +84,17 @@ const registerUser = Asynchandler(async (req, res) => {
     .cookie("refreshToken", refreshToken, RefreshTokenOptions) // Now refreshToken is defined!
     .json(
       new Apiresponse(
-        201, 
-        { user: createdUser, accessToken, refreshToken }, 
-        "User created and logged in successfully"
-      )
+        201,
+        { user: createdUser, accessToken, refreshToken },
+        "User created and logged in successfully",
+      ),
     );
 });
 
 const setupAccount = Asynchandler(async (req, res) => {
   // 1. Retrieve files AND text fields
   const { fullname } = req.body; // Correctly extract the string
-  
+
   const avatarLocalPath = req.files?.avatar?.[0]?.path;
   const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
@@ -105,7 +109,7 @@ const setupAccount = Asynchandler(async (req, res) => {
 
   // 3. Upload to Cloudinary
   const avatar = await cloudinaryUploader(avatarLocalPath);
-  
+
   if (!avatar) {
     throw new Apierror(500, "Error while uploading avatar");
   }
@@ -126,7 +130,7 @@ const setupAccount = Asynchandler(async (req, res) => {
         isProfileComplete: true,
       },
     },
-    { new: true }
+    { new: true },
   ).select("-password -refreshToken");
 
   if (!user) {
@@ -141,7 +145,6 @@ const setupAccount = Asynchandler(async (req, res) => {
 
 const userLogin = Asynchandler(async (req, res) => {
   const { email, password } = req.body;
-  
 
   if ([email, password].some((field) => field?.trim() === "")) {
     throw new Apierror(400, "All fields are mandatory");
@@ -152,9 +155,7 @@ const userLogin = Asynchandler(async (req, res) => {
   if (!user) {
     throw new Apierror(404, "User does not exist");
   }
-  
-  console.log("Entered Password:", password);
-  console.log("Stored Password:", user.password);
+
   const verifyPassword = await user.isPasswordCorrect(password);
 
   if (!verifyPassword) {
@@ -171,8 +172,8 @@ const userLogin = Asynchandler(async (req, res) => {
 
   return res
     .status(200)
-    .cookie("accessToken", accessToken,AccessTokenOptions)
-    .cookie("refreshToken", refreshToken,RefreshTokenOptions)
+    .cookie("accessToken", accessToken, AccessTokenOptions)
+    .cookie("refreshToken", refreshToken, RefreshTokenOptions)
     .json(
       new Apiresponse(
         200,
@@ -201,24 +202,24 @@ const forgotPassword = Asynchandler(async (req, res) => {
 
   // 2. Create Reset Token
   const resetToken = crypto.randomBytes(20).toString("hex");
-  console.log("resetToken:",resetToken);
+  console.log("resetToken:", resetToken);
 
   // 3. Hash token and save to DB
   user.forgotPasswordToken = crypto
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
-  console.log("forgot passwordtoken:",user.forgotPasswordToken);
+  console.log("forgot passwordtoken:", user.forgotPasswordToken);
   user.forgotPasswordTokenExpiry = Date.now() + 15 * 60 * 1000; // 15 Mins
 
   await user.save({ validateBeforeSave: false });
 
   // 4. Send Email
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-  console.log("reseturl:",resetUrl )
+  console.log("reseturl:", resetUrl);
   const message = `You requested a password reset. Click the link to reset your password: \n\n ${resetUrl} \n\n If you didn't request this, please ignore this email.`;
-  console.log("message:",message )
-  
+  console.log("message:", message);
+
   try {
     await sendEmail({
       email: user.email,
@@ -229,10 +230,7 @@ const forgotPassword = Asynchandler(async (req, res) => {
     return res
       .status(200)
       .json(new Apiresponse(200, {}, "Reset link sent to email"));
-
-  } 
-  catch (error) 
-  {
+  } catch (error) {
     console.error("Nodemailer Error:", error);
     // If email fails, clean up the fields in DB
     user.forgotPasswordToken = undefined;
@@ -245,19 +243,16 @@ const forgotPassword = Asynchandler(async (req, res) => {
 
 const resetPassword = Asynchandler(async (req, res) => {
   const { token } = req.params;
-  if(!token){
-    throw new Apierror(404,"reset-token is required")
+  if (!token) {
+    throw new Apierror(404, "reset-token is required");
   }
   const { password } = req.body;
 
-  if(!password){
-    throw new Apierror(404,"reset-token is required")
+  if (!password) {
+    throw new Apierror(404, "reset-token is required");
   }
   // 1. Hash the incoming token to compare with DB
-  const hashedToken = crypto
-    .createHash("sha256")
-    .update(token)
-    .digest("hex");
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
   // 2. Find user with valid token and check expiry
   const user = await User.findOne({
@@ -489,10 +484,10 @@ const updateCoverImage = Asynchandler(async (req, res) => {
 
 const userProfileDetails = Asynchandler(async (req, res) => {
   const { username } = req.params;
-  
-  const loggedInUserId = req.user?._id 
-        ? new mongoose.Types.ObjectId(req.user._id) 
-        : null;
+
+  const loggedInUserId = req.user?._id
+    ? new mongoose.Types.ObjectId(req.user._id)
+    : null;
 
   if (!username?.trim()) {
     throw new Apierror(404, "username cannot be empty");
@@ -586,31 +581,99 @@ const userProfileDetails = Asynchandler(async (req, res) => {
 
 //new user cold start
 const completeOnboarding = Asynchandler(async (req, res) => {
-  const { interests } = req.body;
+  let { interests } = req.body;
+
+  console.log("\n================ [DEBUG ONBOARDING] ================");
+  console.log("1. req.user._id:", req.user?._id);
+  console.log("2. Raw req.body.interests:", interests);
+
+  // Parse input
+  if (typeof interests === "string") {
+    try {
+      interests = JSON.parse(interests);
+    } catch (e) {
+      interests = interests.split(",").map((i) => i.trim()).filter(Boolean);
+    }
+  }
 
   if (!interests || !Array.isArray(interests) || interests.length === 0) {
     throw new Apierror(400, "Please select at least one interest");
   }
 
-  const interestString = interests.join(" ");
+  const interestString = interests.join(", ");
+  console.log("3. Cleaned Interest String:", interestString);
 
-  const currentVector = await generateEmbedding(interestString);
+  // Generate vector
+  const rawVector = await generateEmbedding(`${interestString}`);
 
-  if (!currentVector) {
-    throw new Apierror(500, "Failed to generate interest profile. Try again.");
+  console.log("4. rawVector type:", typeof rawVector);
+  console.log("5. Is Array:", Array.isArray(rawVector));
+
+  if (!rawVector) {
+    throw new Apierror(500, "Failed to generate interest profile.");
   }
 
+  // Format array
+  const currentVector = Array.isArray(rawVector)
+    ? rawVector.flat(Infinity).map((num) => Number(num))
+    : [];
+
+  console.log("6. Final Vector Length:", currentVector.length);
+  console.log("7. First 5 Vector Values:", currentVector.slice(0, 5));
+
+  // Perform Update
+  const updateResult = await User.updateOne(
+    { _id: req.user._id },
+    {
+      $set: {
+      baseInterestVector: currentVector,
+      userIntrestVector: currentVector,
+      isNewUser: false,
+      explicitPreferences: interests,
+    },
+  },
+  { new: true },
+  );
+
+  console.log("8. MongoDB Update Result:", updateResult);
+  console.log("===================================================\n");
+
+  // Fetch from DB right after update to verify
+  const verifiedUser = await User.findById(req.user._id).lean();
+  console.log(
+    "9. DB Sample after update:",
+    verifiedUser?.userIntrestVector?.slice(0, 5)
+  );
+
+  if (updateResult.matchedCount === 0) {
+    throw new Apierror(404, "User document was not found for update.");
+  }
+
+  if (updateResult.modifiedCount === 0) {
+    console.warn("WARNING: Document matched, but MongoDB modified 0 fields!");
+  }
+
+  return res.status(200).json(
+    new Apiresponse(
+      200,
+      { isNewUser: false },
+      "User preference and vector profile stored successfully"
+    )
+  );
+});
+
+const skipOnboarding = Asynchandler(async (req, res) => {
   const updatedUser = await User.findByIdAndUpdate(
     req.user._id,
     {
       $set: {
-        userInterest: currentVector,
         isNewUser: false,
-        // Best practice: Save the text tags too for filtering later
-        explicitPreferences: interests,
+        explicitPreferences: [],
+        baseInterestVector: new Array(384).fill(0),
+        userIntrestVector: new Array(384).fill(0),
       },
     },
-    { new: true },
+    { new: true }
   );
 
   if (!updatedUser) {
@@ -618,7 +681,14 @@ const completeOnboarding = Asynchandler(async (req, res) => {
   }
 
   return res.status(200).json(
-    new Apiresponse(200, { isNewUser: updatedUser.isNewUser }, "User preference and vector profile stored successfully")
+    new Apiresponse(
+      200,
+      {
+        isNewUser: updatedUser.isNewUser,
+        explicitPreferences: updatedUser.explicitPreferences,
+      },
+      "Onboarding skipped successfully"
+    )
   );
 });
 
@@ -640,4 +710,5 @@ export {
   userProfileDetails,
   generateAccessAndRefreshToken,
   completeOnboarding,
+  skipOnboarding
 };
