@@ -1,225 +1,350 @@
-import { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { loginSuccess } from "../redux/slices/authSlice";
+import { useState } from "react";
+import { useSelector } from "react-redux";
 import axiosInstance from "../api/axiosInstance";
 import toast, { Toaster } from "react-hot-toast";
 
 const SettingsPage = () => {
   const { user } = useSelector((state) => state.auth);
-  const dispatch = useDispatch();
 
-  const [formData, setFormData] = useState({
-    fullname: "",
-    email: "",
-    bio: "",
+  const [activeTab, setActiveTab] = useState("security");
+
+  // ---------------- PASSWORD ----------------
+
+  const [passwordData, setPasswordData] = useState({
+    newPassword: "",
+    confirmPassword: "",
   });
 
-  const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
-  // Sync state with Redux user state when component mounts or user updates
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        fullname: user?.fullname || "",
-        email: user?.email || "",
-        bio: user?.bio || "",
-      });
-      setAvatarPreview(user?.avatar || "");
-    }
-  }, [user]);
+  // ---------------- DELETE ACCOUNT ----------------
 
-  const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // ---------------- PASSWORD HANDLERS ----------------
+
+  const handlePasswordChange = (e) => {
+    setPasswordData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
   };
 
-  const handleAvatarChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 500 * 1024) {
-      return toast.error("Image size must be under 500KB");
-    }
-
-    setAvatarFile(file);
-    setAvatarPreview(URL.createObjectURL(file));
-  };
-
-  const handleSubmit = async (e) => {
+  const handleChangePassword = async (e) => {
     e.preventDefault();
 
-    if (!formData.fullname.trim()) {
-      return toast.error("Full name cannot be empty");
+    const { newPassword, confirmPassword } = passwordData;
+
+    if (!newPassword || !confirmPassword) {
+      return toast.error("All fields are necessary");
     }
 
-    setLoading(true);
-
-    const data = new FormData();
-    data.append("fullname", formData.fullname);
-    data.append("email", formData.email);
-    data.append("bio", formData.bio);
-    if (avatarFile) {
-      data.append("avatar", avatarFile);
+    if (newPassword.length < 6) {
+      return toast.error("Password must be at least 6 characters");
     }
+
+    if (newPassword !== confirmPassword) {
+      return toast.error("Passwords do not match");
+    }
+
+    setPasswordLoading(true);
 
     try {
-      const res = await axiosInstance.patch("/users/update-account", data);
+      await axiosInstance.patch("/users/change-password", {
+        newPassword,
+        confirmPassword,
+      });
 
-      toast.success("Profile updated successfully! ✨");
+      toast.success("Password changed successfully!");
 
-      const updatedUserData = res.data?.data || res.data;
-      dispatch(loginSuccess(updatedUserData));
-      setAvatarFile(null);
+      setPasswordData({
+        newPassword: "",
+        confirmPassword: "",
+      });
     } catch (err) {
-      console.error("Profile update error:", err);
-      toast.error(err?.response?.data?.message || "Failed to update profile");
+      console.error("Change password error:", err);
+
+      toast.error(
+        err?.response?.data?.message ||
+          "Failed to change password"
+      );
     } finally {
-      setLoading(false);
+      setPasswordLoading(false);
+    }
+  };
+
+  // ---------------- DELETE ACCOUNT ----------------
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+
+    try {
+      await axiosInstance.delete("/users/delete-account");
+
+      toast.success("Account deleted successfully");
+
+      setShowDeleteModal(false);
+
+      window.location.href = "/signin";
+    } catch (err) {
+      console.error("Delete account error:", err);
+
+      toast.error(
+        err?.response?.data?.message ||
+          "Failed to delete account"
+      );
+
+      setDeleteLoading(false);
     }
   };
 
   return (
-    <section className="max-w-3xl mx-auto py-12 px-4">
+    <section className="max-w-3xl mx-auto py-10 sm:py-12 px-4">
       <Toaster position="top-center" />
 
-      {/* Header section */}
-      <div className="mb-8">
+      {/* ================= HEADER ================= */}
+
+      <div className="mb-7">
         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
           Account Settings
         </h1>
+
         <p className="text-sm font-medium text-slate-500 mt-1">
-          Update your public profile details and avatar image
+          Manage your security and account
         </p>
       </div>
 
-      {/* Main Container Card */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-10 shadow-sm transition-all duration-300">
-        <div className="flex flex-col md:flex-row gap-10 items-start">
-          
-          {/* Avatar Section */}
-          <div className="flex flex-col items-center gap-3 w-full md:w-auto">
-            <div className="relative group w-36 h-36 rounded-full overflow-hidden border-4 border-slate-100 shadow-md transition-all duration-300 group-hover:shadow-indigo-500/20">
-              <img
-                src={
-                  avatarPreview ||
-                  `https://api.dicebear.com/7.x/initials/svg?seed=${
-                    formData.fullname || "User"
-                  }`
-                }
-                alt="avatar preview"
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              
-              {/* Overlay on hover */}
-              <label className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/60 backdrop-blur-[2px] text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-all duration-200">
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={handleAvatarChange}
-                  accept="image/*"
-                />
-                <i className="fi fi-rr-camera text-2xl mb-1 drop-shadow-sm" />
-                <span className="text-[11px] font-bold uppercase tracking-wider">
-                  Change
-                </span>
-              </label>
-            </div>
+      {/* ================= TABS ================= */}
 
-            <p className="text-xs text-slate-500 font-semibold tracking-wide">
-              Click photo to edit
-            </p>
-          </div>
+      <div className="mb-6 border-b border-slate-200">
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide">
 
-          {/* Info Form Section */}
-          <form className="flex-1 space-y-6 w-full" onSubmit={handleSubmit}>
-            
-            {/* Full Name Input */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Full Name
-              </label>
-              <div className="relative flex items-center">
-                <i className="fi fi-rr-user absolute left-4 text-slate-400 text-base pointer-events-none z-10" />
-                <input
-                  name="fullname"
-                  type="text"
-                  value={formData.fullname}
-                  placeholder="Full Name"
-                  onChange={handleChange}
-                  disabled={loading}
-                  className="profile-input w-full pl-11 pr-4 py-3 rounded-xl text-sm font-semibold outline-none transition-all border border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 bg-white text-slate-900 shadow-sm disabled:bg-slate-100 disabled:text-slate-400"
-                />
-              </div>
-            </div>
+          {/* Security Tab */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("security")}
+            className={`shrink-0 px-4 sm:px-5 py-3 text-sm font-semibold border-b-2 transition-all ${
+              activeTab === "security"
+                ? "text-indigo-600 border-indigo-600"
+                : "text-slate-500 border-transparent hover:text-slate-800"
+            }`}
+          >
+            <i className="fi fi-rr-lock mr-2" />
+            Security
+          </button>
 
-            {/* Email Address Input (Disabled / Locked) */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Email Address
-              </label>
-              <div className="relative flex items-center">
-                <i className="fi fi-rr-envelope absolute left-4 text-slate-400 text-base pointer-events-none z-10" />
-                <input
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  placeholder="Email"
-                  disabled={true}
-                  className="profile-input w-full pl-11 pr-4 py-3 rounded-xl text-sm font-semibold outline-none transition-all border border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed shadow-sm"
-                />
-              </div>
-            </div>
-
-            {/* Bio Input */}
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Bio
-                </label>
-                <span
-                  className={`text-xs font-semibold ${
-                    formData.bio.length >= 140
-                      ? "text-rose-500"
-                      : "text-slate-400"
-                  }`}
-                >
-                  {formData.bio.length}/150
-                </span>
-              </div>
-              <textarea
-                name="bio"
-                maxLength={150}
-                value={formData.bio}
-                onChange={handleChange}
-                placeholder="Tell readers a bit about yourself..."
-                disabled={loading}
-                className="profile-input w-full p-4 rounded-xl text-sm font-semibold outline-none transition-all border border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 bg-white text-slate-900 shadow-sm min-h-[120px] resize-none disabled:bg-slate-100"
-              />
-            </div>
-
-            {/* Submit Action */}
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl transition-all shadow-md hover:shadow-indigo-500/25 active:scale-95 flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <i className="fi fi-rr-spinner animate-spin text-base" />
-                    <span>Saving Changes...</span>
-                  </>
-                ) : (
-                  <span>Save Changes</span>
-                )}
-              </button>
-            </div>
-          </form>
+          {/* Danger Zone Tab */}
+          <button
+            type="button"
+            onClick={() => setActiveTab("danger")}
+            className={`shrink-0 px-4 sm:px-5 py-3 text-sm font-semibold border-b-2 transition-all ${
+              activeTab === "danger"
+                ? "text-rose-600 border-rose-600"
+                : "text-slate-500 border-transparent hover:text-slate-800"
+            }`}
+          >
+            <i className="fi fi-rr-trash mr-2" />
+            Danger Zone
+          </button>
         </div>
       </div>
+
+      {/* ================= SECURITY TAB ================= */}
+
+      {activeTab === "security" && (
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-6 sm:p-10 shadow-sm">
+
+          <div className="max-w-xl">
+
+            <div className="mb-8">
+
+              <div className="w-11 h-11 rounded-xl bg-indigo-50 flex items-center justify-center mb-4">
+                <i className="fi fi-rr-lock text-indigo-600 text-lg" />
+              </div>
+
+              <h2 className="text-xl font-bold text-slate-900">
+                Update Password
+              </h2>
+
+              <p className="text-sm text-slate-500 mt-1">
+                Create a new password for your account.
+              </p>
+            </div>
+
+            <form
+              onSubmit={handleChangePassword}
+              className="space-y-5"
+            >
+
+              {/* New Password */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  New Password
+                </label>
+
+                <div className="relative">
+
+                  <i className="fi fi-rr-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none" />
+
+                  <input
+                    name="newPassword"
+                    type="password"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    disabled={passwordLoading}
+                    placeholder="Enter new password"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl text-sm font-semibold outline-none transition-all border border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 bg-white text-slate-900 shadow-sm disabled:bg-slate-100"
+                  />
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                  Confirm Password
+                </label>
+
+                <div className="relative">
+
+                  <i className="fi fi-rr-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-base pointer-events-none" />
+
+                  <input
+                    name="confirmPassword"
+                    type="password"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    disabled={passwordLoading}
+                    placeholder="Confirm new password"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl text-sm font-semibold outline-none transition-all border border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 bg-white text-slate-900 shadow-sm disabled:bg-slate-100"
+                  />
+                </div>
+              </div>
+
+              {/* Update Password Button */}
+              <button
+                type="submit"
+                disabled={passwordLoading}
+                className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold text-sm rounded-xl transition-all shadow-md hover:shadow-indigo-500/25 active:scale-95 flex items-center justify-center gap-2"
+              >
+                {passwordLoading ? (
+                  <>
+                    <i className="fi fi-rr-spinner animate-spin" />
+                    Updating Password...
+                  </>
+                ) : (
+                  "Update Password"
+                )}
+              </button>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ================= DANGER ZONE TAB ================= */}
+
+      {activeTab === "danger" && (
+        <div className="bg-white border border-rose-200 rounded-2xl p-6 sm:p-10 shadow-sm">
+
+          <div className="max-w-xl">
+
+            <div className="w-11 h-11 rounded-xl bg-rose-50 flex items-center justify-center mb-4">
+              <i className="fi fi-rr-trash text-rose-600 text-lg" />
+            </div>
+
+            <h2 className="text-xl font-bold text-slate-900">
+              Delete Account
+            </h2>
+
+            <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+              Permanently delete your PulseBlog account and all
+              associated data.
+            </p>
+
+            <div className="mt-6 p-4 rounded-xl bg-rose-50 border border-rose-100">
+
+              <p className="text-sm font-semibold text-slate-800 mb-2">
+                The following will be permanently deleted:
+              </p>
+
+              <ul className="text-sm text-slate-600 space-y-1.5">
+                <li>• Your account</li>
+                <li>• Your posts</li>
+                <li>• Your likes</li>
+                <li>• Your comments</li>
+              </ul>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(true)}
+              className="mt-6 w-full sm:w-auto px-8 py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm rounded-xl transition-all shadow-md active:scale-95"
+            >
+              Delete Account
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ================= DELETE CONFIRMATION MODAL ================= */}
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 py-6 overflow-y-auto">
+
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-rose-100 mb-5">
+              <i className="fi fi-rr-trash text-rose-600 text-xl" />
+            </div>
+
+            <h2 className="text-xl font-bold text-slate-900">
+              Delete your account?
+            </h2>
+
+            <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+              This will permanently delete your account, posts,
+              likes, and comments.
+            </p>
+
+            <p className="text-sm font-semibold text-rose-600 mt-3">
+              This action cannot be undone.
+            </p>
+
+            <div className="flex flex-col-reverse sm:flex-row gap-3 mt-7">
+
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleteLoading}
+                className="flex-1 px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm rounded-xl transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading}
+                className="flex-1 px-5 py-3 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-sm rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {deleteLoading ? (
+                  <>
+                    <i className="fi fi-rr-spinner animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete Account"
+                )}
+              </button>
+
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
 
 export default SettingsPage;
+
