@@ -18,6 +18,7 @@ import {
   skipOnboarding,
   AccessTokenOptions,
   RefreshTokenOptions,
+  deleteAccount
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middlewares.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
@@ -51,6 +52,9 @@ router.route("/update-coverImage").patch(verifyJwt, upload.single("coverImage"),
 router.route("/profile-details/:username").get(getOptionalUser, userProfileDetails);
 router.route("/complete-onboarding").patch(verifyJwt, completeOnboarding);
 router.route("/skip-onboarding").patch(verifyJwt, skipOnboarding);
+
+//delete routes
+router.route("/delete-account").delete(verifyJwt,deleteAccount);
 
 // Social Auth routes
 router.route("/google").get(
