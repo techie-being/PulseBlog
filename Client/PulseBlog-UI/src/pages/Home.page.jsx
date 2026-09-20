@@ -15,9 +15,9 @@ const CATEGORIES = [
 
 const HomePage = () => {
   const [posts, setPosts] = useState([]);
-  
+
   const [loading, setLoading] = useState(true);
-  
+
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [fetching, setFetching] = useState(false);
@@ -32,9 +32,10 @@ const HomePage = () => {
         setFetching(true);
       }
 
-      const categoryParam = category !== "All" ? `&category=${encodeURIComponent(category)}` : "";
+      const categoryParam =
+        category !== "All" ? `&category=${encodeURIComponent(category)}` : "";
       const response = await axiosInstance.get(
-        `/posts/get-all-posts?page=${pageNum}&limit=5${categoryParam}`
+        `/posts/get-all-posts?page=${pageNum}&limit=5${categoryParam}`,
       );
 
       const resultPayload = response.data?.data;
@@ -55,12 +56,8 @@ const HomePage = () => {
     }
   };
 
-  
-  
-
   useEffect(() => {
     fetchPosts(1, activeCategory);
-    
   }, []);
 
   const handleCategoryChange = (category) => {
@@ -89,10 +86,10 @@ const HomePage = () => {
               key={cat}
               onClick={() => handleCategoryChange(cat)}
               className={`px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-colors shrink-0 ${
-                activeCategory === cat
-                  ? "bg-black text-white dark:bg-white dark:text-black"
-                  : "bg-grey/60 text-dark-grey hover:bg-grey hover:text-black dark:hover:text-white"
-              }`}
+  activeCategory === cat
+    ? "bg-indigo-600 text-white dark:bg-indigo-500"
+    : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
+}`}
             >
               {cat}
             </button>
@@ -103,7 +100,10 @@ const HomePage = () => {
         {loading ? (
           <div className="space-y-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="animate-pulse flex flex-col gap-3 p-4 border border-grey/60 rounded-2xl">
+              <div
+                key={i}
+                className="animate-pulse flex flex-col gap-3 p-4 border border-grey/60 rounded-2xl"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-grey/60" />
                   <div className="h-4 w-32 bg-grey/60 rounded" />
@@ -124,7 +124,10 @@ const HomePage = () => {
             <p className="text-xs text-dark-grey mb-6">
               Be the first author to write a story on this topic!
             </p>
-            <Link to="/write" className="btn-dark py-2 px-6 rounded-full inline-block text-sm">
+            <Link
+              to="/write"
+              className="btn-dark py-2 px-6 rounded-full inline-block text-sm"
+            >
               Start Writing
             </Link>
           </div>
