@@ -428,6 +428,8 @@ const updateAccountDetails = Asynchandler(async (req, res) => {
     .json(new Apiresponse(200, user, "Profile updated successfully"));
 });
 
+
+
 const updateAvatar = Asynchandler(async (req, res) => {
   const avatarLocalPath = req.file?.path;
 
@@ -697,6 +699,62 @@ const skipOnboarding = Asynchandler(async (req, res) => {
   );
 });
 
+const deleteAccount = Asynchandler(async (req, res) => {
+  const userId = req.user._id;
+
+  // 1. Check whether user exists
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new Apierror(404, "User not found");
+  }
+
+  // 2. Find all posts created by this user
+  const userPosts = await Post.find({
+    owner: userId,
+  }).select("_id");
+
+  const postIds = userPosts.map((post) => post._id);
+
+  // 3. Delete likes related to this user
+  //    - Likes created by the user
+  //    - Likes on the user's posts
+  await Like.deleteMany({
+    $or: [
+      { likedBy: userId },
+      { postId: { $in: postIds } },
+    ],
+  });
+
+  // 4. Delete comments related to this user
+  //    - Comments created by the user
+  //    - Comments on the user's posts
+  await Comment.deleteMany({
+    $or: [
+      { commentUserId: userId },
+      { postId: { $in: postIds } },
+    ],
+  });
+
+  // 5. Delete all posts created by the user
+  await Post.deleteMany({
+    owner: userId,
+  });
+
+  // 6. Finally delete the user
+  await User.findByIdAndDelete(userId);
+
+  return res
+    .status(200)
+    .json(
+      new Apiresponse(
+        200,
+        {},
+        "Account and all associated data deleted successfully"
+      )
+    );
+});
+
 export {
   RefreshTokenOptions,
   AccessTokenOptions,
@@ -715,5 +773,6 @@ export {
   userProfileDetails,
   generateAccessAndRefreshToken,
   completeOnboarding,
-  skipOnboarding
+  skipOnboarding,
+  deleteAccount,
 };

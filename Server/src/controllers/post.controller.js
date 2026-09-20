@@ -537,13 +537,10 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
     .split(/\s+/)
     .filter((word) => word.length >= 2);
 
-  /*
-   * --------------------------------------------------
-   * RELEVANCE FILTER
-   * --------------------------------------------------
-   *
-   * We use lexical evidence to validate semantic results.
-   */
+  
+  //  RELEVANCE FILTER
+  //  We use lexical evidence to validate semantic results.
+   
   const relevantPosts = candidates.filter((post) => {
     const title =
       typeof post.title === "string" ? post.title.toLowerCase() : "";

@@ -75,18 +75,18 @@ import { router as shareRouter } from "./routes/share.routes.js";
 import { router as aiRouter } from "./routes/ai.routes.js";
 
 //user routes
-app.use("/api/v1/users", standardRateLimit, userRouter);
+app.use("/api/v1/users",  userRouter);
 
 //post routes
-app.use("/api/v1/posts", standardRateLimit, postRouter);
+app.use("/api/v1/posts",  postRouter);
 
 //Subscription routes
 
-app.use("/api/v1/subcription", standardRateLimit, subcriptionRouter);
+app.use("/api/v1/subcription",  subcriptionRouter);
 
 //like routes
 
-app.use("/api/v1/like", standardRateLimit, likeRouter);
+app.use("/api/v1/like",  likeRouter);
 
 app.use("/api/v1/comment", commentRouter);
 
