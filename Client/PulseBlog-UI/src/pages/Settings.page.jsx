@@ -17,6 +17,10 @@ const SettingsPage = () => {
 
   const [passwordLoading, setPasswordLoading] = useState(false);
 
+  // Eye toggle state visibility
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   // ---------------- DELETE ACCOUNT ----------------
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -189,13 +193,25 @@ const SettingsPage = () => {
 
                   <input
                     name="newPassword"
-                    type="password"
+                    type={showNewPassword ? "text" : "password"}
                     value={passwordData.newPassword}
                     onChange={handlePasswordChange}
                     disabled={passwordLoading}
                     placeholder="Enter new password"
-                    className="w-full pl-11 pr-4 py-3 rounded-xl text-sm font-semibold outline-none transition-all border border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 bg-white text-slate-900 shadow-sm disabled:bg-slate-100"
+                    className="w-full pl-11 pr-11 py-3 rounded-xl text-sm font-semibold outline-none transition-all border border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 bg-white text-slate-900 shadow-sm disabled:bg-slate-100"
                   />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((prev) => !prev)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  >
+                    <i
+                      className={`fi ${
+                        showNewPassword ? "fi-rr-eye-crossed" : "fi-rr-eye"
+                      } text-base`}
+                    />
+                  </button>
                 </div>
               </div>
 
@@ -211,13 +227,25 @@ const SettingsPage = () => {
 
                   <input
                     name="confirmPassword"
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     value={passwordData.confirmPassword}
                     onChange={handlePasswordChange}
                     disabled={passwordLoading}
                     placeholder="Confirm new password"
-                    className="w-full pl-11 pr-4 py-3 rounded-xl text-sm font-semibold outline-none transition-all border border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 bg-white text-slate-900 shadow-sm disabled:bg-slate-100"
+                    className="w-full pl-11 pr-11 py-3 rounded-xl text-sm font-semibold outline-none transition-all border border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500/20 bg-white text-slate-900 shadow-sm disabled:bg-slate-100"
                   />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  >
+                    <i
+                      className={`fi ${
+                        showConfirmPassword ? "fi-rr-eye-crossed" : "fi-rr-eye"
+                      } text-base`}
+                    />
+                  </button>
                 </div>
               </div>
 
@@ -347,4 +375,3 @@ const SettingsPage = () => {
 };
 
 export default SettingsPage;
-
