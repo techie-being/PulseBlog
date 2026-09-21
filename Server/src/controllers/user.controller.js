@@ -95,8 +95,8 @@ const registerUser = Asynchandler(async (req, res) => {
 });
 
 const setupAccount = Asynchandler(async (req, res) => {
-  // 1. Retrieve files AND text fields
-  const { fullname } = req.body; // Correctly extract the string
+  // 1. Retrieve files and text fields
+  const { fullname } = req.body;
 
   const avatarLocalPath = req.files?.avatar?.[0]?.path;
   const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
@@ -110,26 +110,46 @@ const setupAccount = Asynchandler(async (req, res) => {
     throw new Apierror(400, "Avatar file is required to complete setup");
   }
 
-  // 3. Upload to Cloudinary
+  // 3. Upload avatar to Cloudinary
   const avatar = await cloudinaryUploader(avatarLocalPath);
 
   if (!avatar) {
     throw new Apierror(500, "Error while uploading avatar");
   }
 
+  // 4. Upload cover image if provided
   let coverImage;
+
   if (coverImageLocalPath) {
     coverImage = await cloudinaryUploader(coverImageLocalPath);
+
+    if (!coverImage) {
+      throw new Apierror(500, "Error while uploading cover image");
+    }
   }
 
-  // 4. Update the User in MongoDB
+  // 5. Update User
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
-        fullname, // Now this is a clean string
-        avatar: avatar.url,
-        coverImage: coverImage?.url || "",
+        fullname,
+
+        avatar: {
+          url: avatar.url,
+          publicId: avatar.public_id,
+        },
+
+        coverImage: coverImage
+          ? {
+              url: coverImage.url,
+              publicId: coverImage.public_id,
+            }
+          : {
+              url: "",
+              publicId: "",
+            },
+
         isProfileComplete: true,
       },
     },
@@ -140,10 +160,16 @@ const setupAccount = Asynchandler(async (req, res) => {
     throw new Apierror(404, "User not found");
   }
 
-  // 5. Return success
+  // 6. Return success
   return res
     .status(200)
-    .json(new Apiresponse(200, user, "Account setup completed successfully"));
+    .json(
+      new Apiresponse(
+        200,
+        user,
+        "Account setup completed successfully",
+      ),
+    );
 });
 
 const userLogin = Asynchandler(async (req, res) => {
@@ -400,79 +426,89 @@ const updateAccountDetails = Asynchandler(async (req, res) => {
     throw new Apierror(400, "Email and Full name are required");
   }
 
-  const updateFields = {
-    email,
-    fullname,
-    bio,
-  };
-
-  // Check for avatar upload
-  const avatarLocalPath = req.file?.path;
-  if (avatarLocalPath) {
-    const avatar = await cloudinaryUploader(avatarLocalPath);
-    if (!avatar || !avatar.url) {
-      throw new Apierror(500, "Error while uploading new avatar");
-    }
-    updateFields.avatar = avatar.url;
-  }
-
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
-      $set: updateFields,
+      $set: {
+        email,
+        fullname,
+        bio,
+      },
     },
     {
       new: true,
     },
   ).select("-password -refreshToken");
 
+  if (!user) {
+    throw new Apierror(404, "User not found");
+  }
+
   return res
     .status(200)
-    .json(new Apiresponse(200, user, "Profile updated successfully"));
+    .json(
+      new Apiresponse(
+        200,
+        user,
+        "Profile updated successfully",
+      ),
+    );
 });
-
-
 
 const updateAvatar = Asynchandler(async (req, res) => {
   const avatarLocalPath = req.file?.path;
 
   if (!avatarLocalPath) {
-    throw new Apierror(404, "avatar path not found");
+    throw new Apierror(404, "Avatar path not found");
   }
 
   const avatar = await cloudinaryUploader(avatarLocalPath);
 
-  if (!avatar || !avatar.url) {
-    throw new Apierror(500, "error while uploading avatar on cloud");
+  if (!avatar || !avatar.url || !avatar.public_id) {
+    throw new Apierror(500, "Error while uploading avatar on cloud");
   }
 
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
-        avatar: avatar.url,
+        avatar: {
+          url: avatar.url,
+          publicId: avatar.public_id,
+        },
       },
     },
     { new: true },
-  );
+  ).select("-password -refreshToken");
+
+  if (!user) {
+    throw new Apierror(404, "User not found");
+  }
+
   return res
     .status(200)
-    .json(new Apiresponse(200, user, "User avatar is updated successfully"));
+    .json(
+      new Apiresponse(
+        200,
+        user,
+        "User avatar is updated successfully",
+      ),
+    );
 });
 
 const updateCoverImage = Asynchandler(async (req, res) => {
   const coverImageLocalPath = req.file?.path;
 
   if (!coverImageLocalPath) {
-    throw new Apierror(404, "avatar path not found");
+    throw new Apierror(404, "Cover image path not found");
   }
 
   const coverImage = await cloudinaryUploader(coverImageLocalPath);
 
-  if (!coverImage.url) {
+  if (!coverImage || !coverImage.url || !coverImage.public_id) {
     throw new Apierror(
       500,
-      "Internal error while uploading coverImage on cloud",
+      "Internal error while uploading cover image on cloud",
     );
   }
 
@@ -480,15 +516,27 @@ const updateCoverImage = Asynchandler(async (req, res) => {
     req.user?._id,
     {
       $set: {
-        coverImage: coverImage.url,
+        coverImage: {
+          url: coverImage.url,
+          publicId: coverImage.public_id,
+        },
       },
     },
     { new: true },
-  );
+  ).select("-password -refreshToken");
+
+  if (!user) {
+    throw new Apierror(404, "User not found");
+  }
+
   return res
     .status(200)
     .json(
-      new Apiresponse(200, user, "User coverImage is updated successfully"),
+      new Apiresponse(
+        200,
+        user,
+        "User cover image is updated successfully",
+      ),
     );
 });
 

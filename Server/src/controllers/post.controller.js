@@ -24,14 +24,13 @@ const createPost = Asynchandler(async (req, res) => {
 
   const thumbnail = await cloudinaryUploader(localPath);
 
-  if (!thumbnail || !thumbnail.url) {
+  if (!thumbnail || !thumbnail.url || !thumbnail.public_id) {
     throw new Apierror(
       500,
       "Image upload failed. Please check your internet connection or image format.",
     );
   }
 
-  // Generate embedding for search and recommendation
   const embedding = await generateEmbedding(`${title}. ${content}`);
 
   if (!embedding) {
@@ -41,8 +40,8 @@ const createPost = Asynchandler(async (req, res) => {
     );
   }
 
-  // Handle tags: convert comma-separated string to array
   let tagsArray = [];
+
   if (tags) {
     if (typeof tags === "string") {
       try {
@@ -62,7 +61,12 @@ const createPost = Asynchandler(async (req, res) => {
   const createdPost = await Post.create({
     title,
     content,
-    mediaImage: thumbnail.url,
+
+    mediaImage: {
+      url: thumbnail.url,
+      publicId: thumbnail.public_id,
+    },
+
     owner: req.user._id,
     tags: tagsArray,
     isPublished: isPublished === "true" || isPublished === true,
@@ -268,20 +272,16 @@ const deletePost = Asynchandler(async (req, res) => {
   const foundPost = await Post.findById(postId);
 
   if (!foundPost) {
-    throw new Apierror(404, "posts not found");
+    throw new Apierror(404, "Post not found");
   }
 
-  const user = req.user._id;
-
-  if (user.toString() !== foundPost.owner.toString()) {
-    throw new Apierror(403, "unauthorize to delete post");
+  if (req.user._id.toString() !== foundPost.owner.toString()) {
+    throw new Apierror(403, "Unauthorized to delete post");
   }
 
-  const imageUrl = foundPost.mediaImage;
+  const publicId = foundPost.mediaImage?.publicId;
 
-  if (imageUrl) {
-    const publicId = imageUrl.split("/").pop().split(".")[0];
-
+  if (publicId) {
     await cloudinary.uploader.destroy(publicId);
   }
 
@@ -295,7 +295,8 @@ const deletePost = Asynchandler(async (req, res) => {
 //slug and post id may create a mesh be careful while testing
 const updatePost = Asynchandler(async (req, res) => {
   const { postId } = req.params;
-  const { title, content, tags } = req.body; // 1. Destructure tags
+  const { title, content, tags } = req.body;
+
   const findPost = await Post.findById(postId);
 
   if (!findPost) {
@@ -303,7 +304,7 @@ const updatePost = Asynchandler(async (req, res) => {
   }
 
   if (findPost.owner.toString() !== req.user._id.toString()) {
-    throw new Apierror(403, "unauthorize to perform update request");
+    throw new Apierror(403, "Unauthorized to perform update request");
   }
 
   if (title) {
@@ -314,7 +315,6 @@ const updatePost = Asynchandler(async (req, res) => {
     findPost.content = content;
   }
 
-  // 2. Parse and update tags
   if (tags !== undefined) {
     let parsedTags = tags;
 
@@ -332,28 +332,26 @@ const updatePost = Asynchandler(async (req, res) => {
     findPost.tags = Array.isArray(parsedTags) ? parsedTags : [];
   }
 
-  console.log("does file is coming", req.file);
-  console.log("File received:", req.file);
-
   if (req.file) {
-    const existingImage = findPost.mediaImage;
-    console.log("Old Image URL:", existingImage);
-
     const newImage = await cloudinaryUploader(req.file.path);
-    console.log("Cloudinary Upload Result:", newImage);
 
-    if (!newImage) {
-      throw new Apierror(500, "Something went wrong while uploading new image");
+    if (!newImage || !newImage.url || !newImage.public_id) {
+      throw new Apierror(
+        500,
+        "Something went wrong while uploading new image",
+      );
     }
 
-    if (existingImage) {
-      const fileName = existingImage.split("/").pop().split(".")[0];
-      const publicId = `PulseBlogAssets/${fileName}`;
-      console.log("Deleting Public ID:", publicId);
-      await cloudinary.uploader.destroy(publicId);
+    const oldPublicId = findPost.mediaImage?.publicId;
+
+    if (oldPublicId) {
+      await cloudinary.uploader.destroy(oldPublicId);
     }
 
-    findPost.mediaImage = newImage.url;
+    findPost.mediaImage = {
+      url: newImage.url,
+      publicId: newImage.public_id,
+    };
   }
 
   const update = await findPost.save();
