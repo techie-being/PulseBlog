@@ -2,6 +2,9 @@ import { Asynchandler } from "../utils/Asynchandler.js";
 import { Apierror } from "../utils/Apierror.js";
 import { Apiresponse } from "../utils/Apiresponse.js";
 import { User } from "../models/user.models.js";
+import {Post} from "../models/post.models.js";
+import {Like} from"../models/likes.models.js";
+import {Comment} from "../models/comment.models.js"
 import { cloudinaryUploader } from "../utils/Cloudinary.js";
 import { generateEmbedding } from "../utils/Embedding.js";
 import jwt from "jsonwebtoken";
