@@ -3,7 +3,8 @@ dotenv.config();
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
-import { rateLimit } from "express-rate-limit";
+
+
 import express from "express";
 import multer from "multer";
 import "./Config/Passport.js";
@@ -27,34 +28,6 @@ app.use(cors({
 //secure https header
 app.use(helmet({ contentSecurityPolicy: false }));
 
-//for normal request like posts fetch or profile details etc,
-const standardRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: {
-    success: false,
-    message: "Too many requests, please try again later.",
-  },
-});
-
-const aiRateLimit = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 5,
-  message: {
-    success: false,
-    message: "AI generation limit reached. Please try again in an hour.",
-  },
-});
-
-const authRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  message: {
-    success: false,
-    message: "Too many login attempts, please try again later.",
-  },
-});
-
 //configure server to accept data up to 16kb
 app.use(express.json({ limit: "16kb" }));
 
@@ -74,23 +47,26 @@ import { router as commentRouter } from "./routes/comment.routes.js";
 import { router as shareRouter } from "./routes/share.routes.js";
 import { router as aiRouter } from "./routes/ai.routes.js";
 
+import {standardRateLimit,aiRateLimit} from "./middlewares/rateLimit.js";
+ 
+
 //user routes
-app.use("/api/v1/users",  userRouter);
+app.use("/api/v1/users",standardRateLimit,  userRouter);
 
 //post routes
-app.use("/api/v1/posts",  postRouter);
+app.use("/api/v1/posts", standardRateLimit, postRouter);
 
 //Subscription routes
 
-app.use("/api/v1/subcription",  subcriptionRouter);
+app.use("/api/v1/subcription", standardRateLimit, subcriptionRouter);
 
 //like routes
 
-app.use("/api/v1/like",  likeRouter);
+app.use("/api/v1/like", standardRateLimit,likeRouter);
 
-app.use("/api/v1/comment", commentRouter);
+app.use("/api/v1/comment", standardRateLimit,commentRouter);
 
-app.use("/api/v1/share", shareRouter);
+app.use("/api/v1/share",standardRateLimit, shareRouter);
 
 app.use("/api/v1/ai", aiRateLimit, aiRouter);
 
