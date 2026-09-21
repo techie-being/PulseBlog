@@ -24,10 +24,13 @@ import { upload } from "../middlewares/multer.middlewares.js";
 import { verifyJwt } from "../middlewares/auth.middleware.js";
 import { getOptionalUser } from "../middlewares/optionalAuth.middleware.js";
 import passport from "passport";
+import {authRateLimit} from "../middlewares/rateLimit.js";
 const router = Router();
 
+
+
 //first User-Routes
-router.route("/register").post(registerUser);
+router.route("/register").post(authRateLimit,registerUser);
 
 // Step 2: Media upload (Requires being logged in)
 router.route("/setup-account").patch(
@@ -38,17 +41,17 @@ router.route("/setup-account").patch(
   ]),
   setupAccount,
 );
-router.route("/forgot-password").post(forgotPassword);
-router.route("/reset-password/:token").patch(resetPassword);
-router.route("/Login").post(userLogin);
+router.route("/forgot-password").post(authRateLimit,forgotPassword);
+router.route("/reset-password/:token").patch(authRateLimit,resetPassword);
+router.route("/Login").post(authRateLimit,userLogin);
 router.route("/Logout").post(verifyJwt, userLogout);
-router.route("/refresh-token").post(refreshToken);
+router.route("/refresh-token").post(authRateLimit,refreshToken);
 router.route("/current-user").get(verifyJwt, getCurrentUser);
 router.route("/change-password").patch(verifyJwt, changePassword);
 router.route("/update-account").patch(verifyJwt, upload.single("avatar"), updateAccountDetails);
 router.route("/update-avatar").patch(verifyJwt, upload.single("avatar"), updateAvatar);
-router.route("/update-coverImage").patch(verifyJwt, upload.single("coverImage"), updateCoverImage);
-//search profile
+router.route("/update-coverImage").patch(verifyJwt, upload.single("coverImage"),updateCoverImage);
+//search profile,
 router.route("/profile-details/:username").get(getOptionalUser, userProfileDetails);
 router.route("/complete-onboarding").patch(verifyJwt, completeOnboarding);
 router.route("/skip-onboarding").patch(verifyJwt, skipOnboarding);
