@@ -48,7 +48,10 @@ const Comments = ({ postId }) => {
       </h3>
 
       {/* Auto-Expanding Input Container with Embedded Post Button */}
-      <form onSubmit={handleCommentSubmit} className="relative w-full mb-6 sm:mb-8">
+      <form
+        onSubmit={handleCommentSubmit}
+        className="relative w-full mb-6 sm:mb-8"
+      >
         <textarea
           rows={2}
           value={newComment}
@@ -72,7 +75,10 @@ const Comments = ({ postId }) => {
           </p>
         ) : (
           comments.map((c) => (
-            <div key={c._id} className="p-3.5 sm:p-5 bg-grey rounded-xl transition-all duration-200 block w-full">
+            <div
+              key={c._id}
+              className="p-3.5 sm:p-5 bg-grey rounded-xl transition-all duration-200 block w-full"
+            >
               <div className="flex flex-wrap sm:flex-nowrap justify-between items-center gap-2 mb-2 sm:mb-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   {c.commentUserId?.avatar ? (
@@ -84,18 +90,20 @@ const Comments = ({ postId }) => {
                     />
                   ) : (
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple/20 text-purple flex items-center justify-center font-bold text-xs shrink-0">
-                      {(c.commentUserId?.username || "U").charAt(0).toUpperCase()}
+                      {(c.commentUserId?.username || "U")
+                        .charAt(0)
+                        .toUpperCase()}
                     </div>
                   )}
-                  <p className="font-medium text-xs sm:text-sm capitalize truncate text-gray-900 dark:text-white">
+                  <p className="font-semibold text-xs sm:text-sm truncate text-slate-800">
                     {c.commentUserId?.username || "User"}
                   </p>
                 </div>
                 <p className="text-[11px] sm:text-xs text-dark-grey shrink-0">
                   {new Date(c.createdAt).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
                   })}
                 </p>
               </div>
