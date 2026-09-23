@@ -38,7 +38,7 @@ const ProfilePage = () => {
       try {
         setLoading(true);
         const res = await axiosInstance.get(
-          `/users/profile-details/${username}`
+          `/users/profile-details/${username}`,
         );
         if (isMounted) {
           setProfile(res.data?.data || res.data);
@@ -77,7 +77,9 @@ const ProfilePage = () => {
             User Not Found
           </h2>
           <p className="text-slate-500 text-sm mt-2 mb-6 leading-relaxed">
-            The profile for <span className="font-semibold text-slate-700">@{username}</span> could not be found or has been removed.
+            The profile for{" "}
+            <span className="font-semibold text-slate-700">@{username}</span>{" "}
+            could not be found or has been removed.
           </p>
           <Link
             to="/"
@@ -93,19 +95,18 @@ const ProfilePage = () => {
   const isMyProfile = currentUser?.username === profile.username;
 
   const avatarUrl =
-    profile.avatar ||
+    profile.avatar?.url ||
     `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
-      profile.username
+      profile.username,
     )}&backgroundColor=0284c7,4f46e5,7c3aed`;
 
   const coverUrl =
-    profile.coverImage ||
+    profile.coverImage?.url ||
     "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=1600&q=80";
 
   return (
     <section className="max-w-4xl mx-auto py-6 sm:py-10 px-4 space-y-6">
       <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
-        
         {/* Cover Header */}
         <div className="relative w-full h-44 sm:h-60 md:h-72 bg-slate-900">
           <img
@@ -123,7 +124,6 @@ const ProfilePage = () => {
         {/* Profile Details Container */}
         <div className="px-5 sm:px-8 pb-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-16 sm:-mt-20 gap-4 mb-6">
-            
             {/* Avatar */}
             <div className="relative self-center sm:self-auto">
               <img
@@ -132,7 +132,7 @@ const ProfilePage = () => {
                 className="w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover border-4 border-white shadow-md bg-white ring-1 ring-slate-900/5"
                 onError={(e) => {
                   e.currentTarget.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
-                    profile.username
+                    profile.username,
                   )}`;
                 }}
               />
@@ -145,7 +145,9 @@ const ProfilePage = () => {
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-medium text-sm rounded-xl border border-slate-200/80 transition-all active:scale-95"
                 title="Share profile"
               >
-                <i className={`fi ${copied ? "fi-rr-check text-emerald-600" : "fi-rr-share"} text-sm leading-none`} />
+                <i
+                  className={`fi ${copied ? "fi-rr-check text-emerald-600" : "fi-rr-share"} text-sm leading-none`}
+                />
                 <span>{copied ? "Copied!" : "Share"}</span>
               </button>
 
@@ -189,11 +191,11 @@ const ProfilePage = () => {
                 Profile Details Coming Soon
               </h3>
               <p className="text-slate-500 text-sm mt-1 max-w-md leading-relaxed">
-                Additional user details, activity feeds, and statistics will be available here shortly.
+                Additional user details, activity feeds, and statistics will be
+                available here shortly.
               </p>
             </div>
           </div>
-
         </div>
       </div>
     </section>
