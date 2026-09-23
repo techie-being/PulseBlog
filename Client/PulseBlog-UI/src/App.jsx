@@ -30,7 +30,11 @@ import axiosInstance from "./api/axiosInstance";
 
 const App = () => {
   const dispatch = useDispatch();
-  const isAuthInitialized = useSelector((state) => state.auth.authInitialized);
+
+  const isAuthInitialized = useSelector(
+    (state) => state.auth.authInitialized
+  );
+
   useEffect(() => {
     console.log("🔥 App auth useEffect RUNNING");
 
@@ -73,22 +77,53 @@ const App = () => {
 
   return (
     <>
-      <Toaster position="top-right" />
+      {/* Global Toast Container */}
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 3000,
+          success: {
+            duration: 2500,
+          },
+          error: {
+            duration: 3500,
+          },
+        }}
+      />
+
       <Routes>
         <Route path="/" element={<Navbar />}>
           <Route index element={<HomePage />} />
 
           {/* Standard Auth */}
-          <Route path="signin" element={<UserAuthForm type="sign-in" />} />
-          <Route path="signup" element={<UserAuthForm type="sign-up" />} />
+          <Route
+            path="signin"
+            element={<UserAuthForm type="sign-in" />}
+          />
+          <Route
+            path="signup"
+            element={<UserAuthForm type="sign-up" />}
+          />
 
           {/* Password Recovery */}
-          <Route path="forgot-password" element={<ForgotPassword />} />
-          <Route path="reset-password/:token" element={<ResetPassword />} />
+          <Route
+            path="forgot-password"
+            element={<ForgotPassword />}
+          />
+          <Route
+            path="reset-password/:token"
+            element={<ResetPassword />}
+          />
 
           {/* Google Auth Redirects */}
-          <Route path="login-success" element={<LoginSuccess />} />
-          <Route path="login-failed" element={<LoginFailed />} />
+          <Route
+            path="login-success"
+            element={<LoginSuccess />}
+          />
+          <Route
+            path="login-failed"
+            element={<LoginFailed />}
+          />
 
           {/* Editor / Content Creation */}
           <Route path="write" element={<WritePage />} />
@@ -107,4 +142,5 @@ const App = () => {
     </>
   );
 };
+
 export default App;

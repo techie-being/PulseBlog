@@ -144,30 +144,37 @@ const PostDetail = () => {
   };
 
   const handleTextSelection = () => {
-    const selection = window.getSelection();
+    // Small delay lets mobile browsers finish native text selection
+    setTimeout(() => {
+      const selection = window.getSelection();
 
-    const text = selection.toString().trim();
+      if (!selection || selection.rangeCount === 0) {
+        return;
+      }
 
-    if (!text || selection.rangeCount === 0) {
-      setShowPopup(false);
+      const text = selection.toString().trim();
 
-      return;
-    }
+      if (!text) {
+        setShowPopup(false);
+        return;
+      }
 
-    const range = selection.getRangeAt(0);
+      const range = selection.getRangeAt(0);
+      const rect = range.getBoundingClientRect();
 
-    const rect = range.getBoundingClientRect();
+      if (!rect.width && !rect.height) {
+        return;
+      }
 
-    setSelectedText(text);
+      setSelectedText(text);
 
-    // Modern page coordinate mapping
+      setPopupPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top - 12,
+      });
 
-    setPopupPosition({
-      x: rect.left + rect.width / 2,
-      y: rect.top - 12,
-    });
-
-    setShowPopup(true);
+      setShowPopup(true);
+    }, 50);
   };
 
   const handleAskAI = async () => {
@@ -240,8 +247,6 @@ const PostDetail = () => {
 
   return (
     <section className="py-8 px-4 sm:px-6">
-      
-
       <div className="max-w-3xl mx-auto">
         {/* Cover Image */}
 
