@@ -40,10 +40,14 @@ const DashboardPage = () => {
       if (!user?._id) return;
       try {
         setLoading(true);
-        const res = await axiosInstance.get(`/posts/get-post-by-author/${user._id}`);
+        const res = await axiosInstance.get(
+          `/posts/get-post-by-author/${user._id}`,
+        );
         setPosts(res.data.data?.data || []);
       } catch (err) {
-        toast.error(err?.response?.data?.message || "Failed to fetch your posts");
+        toast.error(
+          err?.response?.data?.message || "Failed to fetch your posts",
+        );
       } finally {
         setLoading(false);
       }
@@ -61,13 +65,21 @@ const DashboardPage = () => {
     const publishedCount = posts.filter((p) => p.isPublished).length;
     const draftCount = posts.length - publishedCount;
 
-    return { totalViews, totalLikes, publishedCount, draftCount, totalPosts: posts.length };
+    return {
+      totalViews,
+      totalLikes,
+      publishedCount,
+      draftCount,
+      totalPosts: posts.length,
+    };
   }, [posts]);
 
   // Filtered & Search Results
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
-      const matchesSearch = post.title?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = post.title
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase());
       if (activeTab === "published") return matchesSearch && post.isPublished;
       if (activeTab === "drafts") return matchesSearch && !post.isPublished;
       return matchesSearch;
@@ -112,8 +124,8 @@ const DashboardPage = () => {
   const performToggleStatus = async (postId, currentStatus) => {
     setPosts((prev) =>
       prev.map((post) =>
-        post._id === postId ? { ...post, isPublished: !currentStatus } : post
-      )
+        post._id === postId ? { ...post, isPublished: !currentStatus } : post,
+      ),
     );
 
     try {
@@ -122,10 +134,12 @@ const DashboardPage = () => {
     } catch (err) {
       setPosts((prev) =>
         prev.map((post) =>
-          post._id === postId ? { ...post, isPublished: currentStatus } : post
-        )
+          post._id === postId ? { ...post, isPublished: currentStatus } : post,
+        ),
       );
-      toast.error(err?.response?.data?.message || "Failed to update post status");
+      toast.error(
+        err?.response?.data?.message || "Failed to update post status",
+      );
     }
   };
 
@@ -169,25 +183,33 @@ const DashboardPage = () => {
       {/* Analytics Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="p-4 bg-grey/50 dark:bg-gray-800/40 border border-grey rounded-xl">
-          <p className="text-xs text-dark-grey font-medium uppercase tracking-wider">Total Posts</p>
+          <p className="text-xs text-dark-grey font-medium uppercase tracking-wider">
+            Total Posts
+          </p>
           <p className="text-xl sm:text-2xl font-bold mt-1 text-gray-900 dark:text-white">
             {stats.totalPosts}
           </p>
         </div>
         <div className="p-4 bg-grey/50 dark:bg-gray-800/40 border border-grey rounded-xl">
-          <p className="text-xs text-dark-grey font-medium uppercase tracking-wider">Published</p>
+          <p className="text-xs text-dark-grey font-medium uppercase tracking-wider">
+            Published
+          </p>
           <p className="text-xl sm:text-2xl font-bold mt-1 text-green-600 dark:text-green-400">
             {stats.publishedCount}
           </p>
         </div>
         <div className="p-4 bg-grey/50 dark:bg-gray-800/40 border border-grey rounded-xl">
-          <p className="text-xs text-dark-grey font-medium uppercase tracking-wider">Total Views</p>
+          <p className="text-xs text-dark-grey font-medium uppercase tracking-wider">
+            Total Views
+          </p>
           <p className="text-xl sm:text-2xl font-bold mt-1 text-purple">
             {stats.totalViews}
           </p>
         </div>
         <div className="p-4 bg-grey/50 dark:bg-gray-800/40 border border-grey rounded-xl">
-          <p className="text-xs text-dark-grey font-medium uppercase tracking-wider">Total Likes</p>
+          <p className="text-xs text-dark-grey font-medium uppercase tracking-wider">
+            Total Likes
+          </p>
           <p className="text-xl sm:text-2xl font-bold mt-1 text-red-500">
             {stats.totalLikes}
           </p>
@@ -200,7 +222,11 @@ const DashboardPage = () => {
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
           {[
             { id: "all", label: "All", count: stats.totalPosts },
-            { id: "published", label: "Published", count: stats.publishedCount },
+            {
+              id: "published",
+              label: "Published",
+              count: stats.publishedCount,
+            },
             { id: "drafts", label: "Drafts", count: stats.draftCount },
           ].map((tab) => (
             <button
@@ -252,13 +278,16 @@ const DashboardPage = () => {
             {searchQuery
               ? "No posts match your search query."
               : activeTab !== "all"
-              ? `No ${activeTab} posts found.`
-              : "You haven't written any posts yet."}
+                ? `No ${activeTab} posts found.`
+                : "You haven't written any posts yet."}
           </p>
           <p className="text-xs text-dark-grey mb-6">
             Share your thoughts with the world.
           </p>
-          <Link to="/write" className="btn-dark py-2 px-6 rounded-full text-sm inline-block">
+          <Link
+            to="/write"
+            className="btn-dark py-2 px-6 rounded-full text-sm inline-block"
+          >
             Start Writing
           </Link>
         </div>
@@ -270,9 +299,9 @@ const DashboardPage = () => {
               className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 border border-grey rounded-2xl hover:border-black/20 dark:hover:border-white/20 transition-all bg-white dark:bg-gray-900 shadow-sm"
             >
               {/* Media Preview */}
-              {post.mediaImage ? (
+              {post.mediaImage?.url ? (
                 <img
-                  src={post.mediaImage}
+                  src={post.mediaImage.url}
                   alt={post.title || "Post thumbnail"}
                   className="w-full sm:w-36 h-36 sm:h-28 object-cover rounded-xl shrink-0"
                 />
@@ -314,7 +343,8 @@ const DashboardPage = () => {
                       <i className="fi fi-rr-eye" /> {post.views || 0} views
                     </span>
                     <span className="flex items-center gap-1">
-                      <i className="fi fi-rr-heart" /> {post.likeCount || 0} likes
+                      <i className="fi fi-rr-heart" /> {post.likeCount || 0}{" "}
+                      likes
                     </span>
                   </div>
                 </div>
@@ -336,10 +366,14 @@ const DashboardPage = () => {
                   </Link>
 
                   <button
-                    onClick={() => handleToggleStatus(post._id, post.title, post.isPublished)}
+                    onClick={() =>
+                      handleToggleStatus(post._id, post.title, post.isPublished)
+                    }
                     className="text-xs font-medium hover:underline text-purple flex items-center gap-1"
                   >
-                    <i className={`fi ${post.isPublished ? "fi-rr-cross-circle" : "fi-rr-check-circle"}`} />
+                    <i
+                      className={`fi ${post.isPublished ? "fi-rr-cross-circle" : "fi-rr-check-circle"}`}
+                    />
                     {post.isPublished ? "Unpublish" : "Publish"}
                   </button>
 
@@ -360,8 +394,14 @@ const DashboardPage = () => {
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t border-grey pt-6 mt-8">
           <p className="text-xs text-dark-grey">
-            Showing Page <span className="font-semibold text-gray-900 dark:text-white">{currentPage}</span> of{" "}
-            <span className="font-semibold text-gray-900 dark:text-white">{totalPages}</span>
+            Showing Page{" "}
+            <span className="font-semibold text-gray-900 dark:text-white">
+              {currentPage}
+            </span>{" "}
+            of{" "}
+            <span className="font-semibold text-gray-900 dark:text-white">
+              {totalPages}
+            </span>
           </p>
           <div className="flex items-center gap-2">
             <button
