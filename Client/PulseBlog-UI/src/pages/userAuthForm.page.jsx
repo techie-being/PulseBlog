@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { loginStart, loginSuccess, loginFailure } from "../redux/slices/authSlice";
 import InputBox from "../components/input.component";
 import axiosInstance from "../api/axiosInstance";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import googleIcon from "../imgs/google.png";
 
 const UserAuthForm = ({ type }) => {
@@ -78,7 +78,7 @@ const UserAuthForm = ({ type }) => {
 
     return (
       <section className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 sm:px-6 py-12 bg-white transition-colors duration-200">
-        <Toaster position="top-center" />
+        
 
         {/* Card Container - Light Slate Fill matching Palette */}
         <div className="w-full max-w-md bg-slate-50/80 border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm hover:shadow transition-shadow">
