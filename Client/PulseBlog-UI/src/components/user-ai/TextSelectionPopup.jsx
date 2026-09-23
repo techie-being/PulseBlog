@@ -73,7 +73,7 @@ const TextSelectionPopup = ({ visible, position, onAskAI, loading }) => {
         ) : (
           <>
             <span className="text-[10px] sm:text-xs transition-transform duration-300 group-hover:rotate-12 shrink-0">
-              ASK AI✨
+              ✨
             </span>
 
             <span className="text-[11px] sm:text-xs">

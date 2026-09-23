@@ -245,7 +245,7 @@ const WritePage = () => {
 
         {/* Thumbnail Uploader Container */}
         <div
-          className="w-full aspect-video max-h-[220px] sm:max-h-[360px] bg-white rounded-2xl mb-6 cursor-pointer overflow-hidden relative group border-2 border-dashed border-slate-200 hover:border-indigo-400 transition-all flex items-center justify-center shadow-sm"
+          className="w-full aspect-video max-h-[220px] sm:max-h-[360px] bg-slate-900 rounded-2xl mb-6 cursor-pointer overflow-hidden relative group border-2  border-slate-200 hover:border-indigo-400 transition-all flex items-center justify-center shadow-sm"
           onClick={() => fileRef.current?.click()}
         >
           {thumbnailPreview ? (
