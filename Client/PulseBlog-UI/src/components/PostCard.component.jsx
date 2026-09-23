@@ -41,9 +41,9 @@ const PostCard = ({ post, index }) => {
           onClick={(e) => handleChildClick(e, `/user/${owner?.username}`)}
           className="flex items-center gap-2 text-left focus:outline-none shrink-0"
         >
-          {owner?.avatar ? (
+          {owner?.avatar?.url ? (
             <img
-              src={owner.avatar}
+              src={owner.avatar.url}
               alt={owner?.username || "Author"}
               className="w-5 h-5 rounded-full object-cover shrink-0"
             />
