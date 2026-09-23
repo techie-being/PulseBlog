@@ -81,9 +81,9 @@ const Comments = ({ postId }) => {
             >
               <div className="flex flex-wrap sm:flex-nowrap justify-between items-center gap-2 mb-2 sm:mb-3">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  {c.commentUserId?.avatar ? (
+                  {c.commentUserId?.avatar?.url ? (
                     <img
-                      src={c.commentUserId.avatar}
+                      src={c.commentUserId.avatar.url}
                       className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover shrink-0"
                       alt={c.commentUserId?.username || "User avatar"}
                       loading="lazy"
