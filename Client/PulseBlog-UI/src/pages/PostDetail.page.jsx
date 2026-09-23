@@ -182,9 +182,8 @@ const PostDetail = () => {
     // Modern page coordinate mapping
 
     setPopupPosition({
-      x: rect.left + rect.width / 2 + window.scrollX,
-
-      y: rect.top + window.scrollY - 12,
+      x: rect.left + rect.width / 2,
+      y: rect.top - 12,
     });
 
     setShowPopup(true);
@@ -265,9 +264,9 @@ const PostDetail = () => {
       <div className="max-w-3xl mx-auto">
         {/* Cover Image */}
 
-        {post.mediaImage && (
+        {post.mediaImage?.url && (
           <img
-            src={post.mediaImage}
+            src={post.mediaImage.url}
             alt={post.title}
             className="w-full aspect-video object-cover rounded-2xl mb-8 border border-grey/50 shadow-sm"
           />
@@ -285,7 +284,7 @@ const PostDetail = () => {
           <div className="flex items-center gap-3">
             <img
               src={
-                post.owner?.avatar ||
+                post.owner?.avatar?.url ||
                 "https://api.dicebear.com/7.x/initials/svg?seed=Author"
               }
               alt={post.owner?.username}

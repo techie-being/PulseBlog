@@ -152,9 +152,9 @@ const Navbar = () => {
                 onClick={() => setDropdownOpen((p) => !p)}
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-700 hover:border-black dark:hover:border-white transition-all focus:outline-none shrink-0"
               >
-                {user?.avatar ? (
+                {user?.avatar?.url ? (
                   <img
-                    src={user?.avatar}
+                    src={user.avatar.url}
                     alt={user?.username || "User avatar"}
                     className="w-full h-full object-cover"
                   />
