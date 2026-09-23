@@ -1,23 +1,13 @@
 import { useState, useEffect } from "react";
-
 import { useParams, Link, useNavigate } from "react-router-dom";
-
 import { useSelector } from "react-redux";
-
-import toast, { Toaster } from "react-hot-toast";
-
+import toast from "react-hot-toast";
 import axiosInstance from "../api/axiosInstance.js";
-
 import BlockRenderer from "../components/BlockRenderer.component.jsx";
-
-import PostCard from "../components/PostCard.component.jsx";
-
 import Comments from "../components/Comments.component.jsx";
 
 import useGenerateSummary from "../hooks/useGenerateSummary.js";
-
 import SummaryModal from "../components/user-ai/SummaryModal.jsx";
-
 import useSimplifyText from "../hooks/useSimplifyText.js";
 
 import TextSelectionPopup from "../components/user-ai/TextSelectionPopup.jsx";
@@ -27,26 +17,17 @@ import AskAIModal from "../components/user-ai/AskAIModal.jsx";
 const PostDetail = () => {
   const navigate = useNavigate();
   const { postId } = useParams();
-
   const [post, setPost] = useState(null);
-
   const [loading, setLoading] = useState(true);
-
   const [summaryData, setSummaryData] = useState(null);
-
   const [showSummaryModal, setShowSummaryModal] = useState(false);
-
   const [selectedText, setSelectedText] = useState("");
-
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
-
   const [showPopup, setShowPopup] = useState(false);
-
   const [showAskAI, setShowAskAI] = useState(false);
 
   // Countdown timer state
   const [timeLeft, setTimeLeft] = useState(10);
-
   // Like state
   const [isLiked, setIsLiked] = useState(false);
 
@@ -259,7 +240,7 @@ const PostDetail = () => {
 
   return (
     <section className="py-8 px-4 sm:px-6">
-      <Toaster position="top-center" />
+      
 
       <div className="max-w-3xl mx-auto">
         {/* Cover Image */}
@@ -393,7 +374,11 @@ const PostDetail = () => {
 
         {/* Article Content */}
 
-        <div onMouseUp={handleTextSelection} className="max-w-none mb-12">
+        <div
+          onMouseUp={handleTextSelection}
+          onTouchEnd={handleTextSelection}
+          className="max-w-none mb-12"
+        >
           <BlockRenderer blocks={blocks} />
         </div>
 
