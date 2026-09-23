@@ -170,7 +170,7 @@ const PostDetail = () => {
 
       setPopupPosition({
         x: rect.left + rect.width / 2,
-        y: rect.top - 12,
+        y: rect.bottom + 12,
       });
 
       setShowPopup(true);

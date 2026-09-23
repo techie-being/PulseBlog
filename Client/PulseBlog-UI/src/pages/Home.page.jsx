@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import PostCard from "../components/PostCard.component";
 import axiosInstance from "../api/axiosInstance";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 const CATEGORIES = [
   "All",
@@ -75,7 +75,7 @@ const HomePage = () => {
 
   return (
     <section className="h-cover flex justify-center gap-10 px-4 md:px-8 max-w-7xl mx-auto py-8">
-      <Toaster />
+      
 
       {/* Main Feed Column */}
       <div className="w-full max-w-3xl">
