@@ -11,29 +11,23 @@ export default function usePolishDraft() {
   const [review, setReview] = useState(null);
   const [titleSuggestion, setTitleSuggestion] = useState(null);
   const runPolish = async (blog, postId) => {
-    console.log("runPolish called");
-    console.log(blog);
-    console.log(postId);
-
+    
     try {
       setLoading(true);
 
       const response = await polishDraft(blog, postId);
-      console.log("AI Response:", response);
+      if(response){
+        console.log("AI response recieved")
+      }
       setReview({
         overallScore: response.overallScore,
         overallFeedback: response.overallFeedback,
       });
 
       setTitleSuggestion(response.titleSuggestion);
-
       setHeadingSuggestions(response.headingSuggestions || []);
-
       setTagSuggestions(response.tagSuggestions || []);
-
       setParagraphSuggestions(response.paragraphSuggestions || []);
-
-      
       setShowPreview(true);
     } catch (err) {
       console.error(err);

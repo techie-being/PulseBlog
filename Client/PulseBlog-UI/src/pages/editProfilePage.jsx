@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
@@ -85,11 +84,8 @@ const EditProfilePage = () => {
 
   const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
-
     if (!file) return;
-
     setAvatar(file);
-
     const previewUrl = URL.createObjectURL(file);
     setAvatarPreview(previewUrl);
   };
@@ -98,11 +94,8 @@ const EditProfilePage = () => {
 
   const handleCoverChange = (e) => {
     const file = e.target.files?.[0];
-
     if (!file) return;
-
     setCoverImage(file);
-
     const previewUrl = URL.createObjectURL(file);
     setCoverPreview(previewUrl);
   };
@@ -111,32 +104,20 @@ const EditProfilePage = () => {
 
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-
     if (!formData.fullname.trim()) {
       return toast.error("Full name is required");
     }
-
     if (!formData.email.trim()) {
       return toast.error("Email is required");
     }
-
     setSaving(true);
 
     try {
-      // ==================================================
-      // 1. UPDATE FULL NAME, EMAIL AND BIO
-      // ==================================================
-
       await axiosInstance.patch("/users/update-account", {
         fullname: formData.fullname,
         email: formData.email,
         bio: formData.bio,
       });
-
-      // ==================================================
-      // 2. UPDATE AVATAR
-      // ==================================================
-
       if (avatar) {
         const avatarData = new FormData();
 
@@ -148,10 +129,6 @@ const EditProfilePage = () => {
         );
       }
 
-      // ==================================================
-      // 3. UPDATE COVER IMAGE
-      // ==================================================
-
       if (coverImage) {
         const coverData = new FormData();
 
@@ -162,7 +139,6 @@ const EditProfilePage = () => {
           coverData
         );
       }
-
       toast.success("Profile updated successfully");
 
       // Go back to profile after successful update

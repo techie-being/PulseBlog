@@ -16,18 +16,13 @@ const SettingsPage = () => {
   });
 
   const [passwordLoading, setPasswordLoading] = useState(false);
-
   // Eye toggle state visibility
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   // ---------------- DELETE ACCOUNT ----------------
-
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-
   // ---------------- PASSWORD HANDLERS ----------------
-
   const handlePasswordChange = (e) => {
     setPasswordData((prev) => ({
       ...prev,
@@ -61,7 +56,6 @@ const SettingsPage = () => {
       });
 
       toast.success("Password changed successfully!");
-
       setPasswordData({
         newPassword: "",
         confirmPassword: "",
@@ -78,22 +72,15 @@ const SettingsPage = () => {
     }
   };
 
-  // ---------------- DELETE ACCOUNT ----------------
-
   const handleDeleteAccount = async () => {
     setDeleteLoading(true);
-
     try {
       await axiosInstance.delete("/users/delete-account");
-
       toast.success("Account deleted successfully");
-
       setShowDeleteModal(false);
-
       window.location.href = "/signin";
     } catch (err) {
       console.error("Delete account error:", err);
-
       toast.error(
         err?.response?.data?.message ||
           "Failed to delete account"

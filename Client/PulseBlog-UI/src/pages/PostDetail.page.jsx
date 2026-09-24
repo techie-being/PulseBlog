@@ -30,7 +30,6 @@ const PostDetail = () => {
   const [timeLeft, setTimeLeft] = useState(10);
   // Like state
   const [isLiked, setIsLiked] = useState(false);
-
   const { isLoggedIn } = useSelector((state) => state.auth);
   const { generate, loading: summaryLoading } = useGenerateSummary();
   const { askAI, result, loading: aiLoading } = useSimplifyText();
@@ -43,18 +42,11 @@ const PostDetail = () => {
         setLoading(true);
 
         // Fetch main post data and related posts
-
         const res = await axiosInstance.get(`/posts/get-post/${postId}`);
-
         const postData = res.data?.data?.post || res.data?.data;
 
         setPost(postData);
-
-        // Track views quietly
-
         axiosInstance.get(`/posts/views/${postId}`).catch(() => {});
-
-        // Fetch user like status if authenticated
 
         if (isLoggedIn) {
           try {

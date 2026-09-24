@@ -13,20 +13,15 @@ import {
 const PolishPreviewModal = ({
   open,
   review,
-
   titleSuggestion,
   headingSuggestions = [],
   tagSuggestions,
   paragraphSuggestions = [],
-
   content,
   setContent,
-
   editorRef,
-
   setTitle,
   setTags,
-
   onClose,
 }) => {
   const [appliedMap, setAppliedMap] = useState({});
