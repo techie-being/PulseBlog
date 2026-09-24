@@ -2,10 +2,10 @@ import { Asynchandler } from "../utils/Asynchandler.js";
 import { Apierror } from "../utils/Apierror.js";
 import { Apiresponse } from "../utils/Apiresponse.js";
 import { User } from "../models/user.models.js";
-import {Post} from "../models/post.models.js";
-import {Like} from"../models/likes.models.js";
-import {Comment} from "../models/comment.models.js"
-import { cloudinaryUploader } from "../utils/Cloudinary.js";
+import { Post } from "../models/post.models.js";
+import { Like } from "../models/likes.models.js";
+import { Comment } from "../models/comment.models.js";
+import { cloudinaryUploader,cloudinary } from "../utils/Cloudinary.js";
 import { generateEmbedding } from "../utils/Embedding.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
@@ -163,13 +163,7 @@ const setupAccount = Asynchandler(async (req, res) => {
   // 6. Return success
   return res
     .status(200)
-    .json(
-      new Apiresponse(
-        200,
-        user,
-        "Account setup completed successfully",
-      ),
-    );
+    .json(new Apiresponse(200, user, "Account setup completed successfully"));
 });
 
 const userLogin = Asynchandler(async (req, res) => {
@@ -410,13 +404,7 @@ const changePassword = Asynchandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(
-      new Apiresponse(
-        200,
-        {},
-        "Password changed successfully"
-      )
-    );
+    .json(new Apiresponse(200, {}, "Password changed successfully"));
 });
 
 const updateAccountDetails = Asynchandler(async (req, res) => {
@@ -446,13 +434,7 @@ const updateAccountDetails = Asynchandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(
-      new Apiresponse(
-        200,
-        user,
-        "Profile updated successfully",
-      ),
-    );
+    .json(new Apiresponse(200, user, "Profile updated successfully"));
 });
 
 const updateAvatar = Asynchandler(async (req, res) => {
@@ -487,13 +469,7 @@ const updateAvatar = Asynchandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(
-      new Apiresponse(
-        200,
-        user,
-        "User avatar is updated successfully",
-      ),
-    );
+    .json(new Apiresponse(200, user, "User avatar is updated successfully"));
 });
 
 const updateCoverImage = Asynchandler(async (req, res) => {
@@ -532,11 +508,7 @@ const updateCoverImage = Asynchandler(async (req, res) => {
   return res
     .status(200)
     .json(
-      new Apiresponse(
-        200,
-        user,
-        "User cover image is updated successfully",
-      ),
+      new Apiresponse(200, user, "User cover image is updated successfully"),
     );
 });
 
@@ -650,7 +622,10 @@ const completeOnboarding = Asynchandler(async (req, res) => {
     try {
       interests = JSON.parse(interests);
     } catch (e) {
-      interests = interests.split(",").map((i) => i.trim()).filter(Boolean);
+      interests = interests
+        .split(",")
+        .map((i) => i.trim())
+        .filter(Boolean);
     }
   }
 
@@ -684,13 +659,13 @@ const completeOnboarding = Asynchandler(async (req, res) => {
     { _id: req.user._id },
     {
       $set: {
-      baseInterestVector: currentVector,
-      userIntrestVector: currentVector,
-      isNewUser: false,
-      explicitPreferences: interests,
+        baseInterestVector: currentVector,
+        userIntrestVector: currentVector,
+        isNewUser: false,
+        explicitPreferences: interests,
+      },
     },
-  },
-  { new: true },
+    { new: true },
   );
 
   console.log("8. MongoDB Update Result:", updateResult);
@@ -700,7 +675,7 @@ const completeOnboarding = Asynchandler(async (req, res) => {
   const verifiedUser = await User.findById(req.user._id).lean();
   console.log(
     "9. DB Sample after update:",
-    verifiedUser?.userIntrestVector?.slice(0, 5)
+    verifiedUser?.userIntrestVector?.slice(0, 5),
   );
 
   if (updateResult.matchedCount === 0) {
@@ -711,13 +686,15 @@ const completeOnboarding = Asynchandler(async (req, res) => {
     console.warn("WARNING: Document matched, but MongoDB modified 0 fields!");
   }
 
-  return res.status(200).json(
-    new Apiresponse(
-      200,
-      { isNewUser: false },
-      "User preference and vector profile stored successfully"
-    )
-  );
+  return res
+    .status(200)
+    .json(
+      new Apiresponse(
+        200,
+        { isNewUser: false },
+        "User preference and vector profile stored successfully",
+      ),
+    );
 });
 
 const skipOnboarding = Asynchandler(async (req, res) => {
@@ -731,7 +708,7 @@ const skipOnboarding = Asynchandler(async (req, res) => {
         userIntrestVector: new Array(384).fill(0),
       },
     },
-    { new: true }
+    { new: true },
   );
 
   if (!updatedUser) {
@@ -745,8 +722,8 @@ const skipOnboarding = Asynchandler(async (req, res) => {
         isNewUser: updatedUser.isNewUser,
         explicitPreferences: updatedUser.explicitPreferences,
       },
-      "Onboarding skipped successfully"
-    )
+      "Onboarding skipped successfully",
+    ),
   );
 });
 
@@ -763,36 +740,65 @@ const deleteAccount = Asynchandler(async (req, res) => {
   // 2. Find all posts created by this user
   const userPosts = await Post.find({
     owner: userId,
-  }).select("_id");
+  }).select("_id mediaImage");
 
   const postIds = userPosts.map((post) => post._id);
 
-  // 3. Delete likes related to this user
-  //    - Likes created by the user
-  //    - Likes on the user's posts
+  // 3. Delete user's avatar from Cloudinary
+  // Delete user's avatar
+  if (user.avatar?.publicId) {
+    console.log("Deleting avatar:", user.avatar.publicId);
+
+    const result = await cloudinary.uploader.destroy(user.avatar.publicId, {
+      resource_type: "image",
+    });
+
+    console.log("Avatar delete result:", result);
+  }
+
+  // Delete user's cover image
+  if (user.coverImage?.publicId) {
+    console.log("Deleting cover:", user.coverImage.publicId);
+
+    const result = await cloudinary.uploader.destroy(user.coverImage.publicId, {
+      resource_type: "image",
+    });
+
+    console.log("Cover delete result:", result);
+  }
+
+  // Delete post images
+  for (const post of userPosts) {
+    if (post.mediaImage?.publicId) {
+      console.log("Deleting post image:", post.mediaImage.publicId);
+
+      const result = await cloudinary.uploader.destroy(
+        post.mediaImage.publicId,
+        {
+          resource_type: "image",
+        },
+      );
+
+      console.log("Post image delete result:", result);
+    }
+  }
+
+  // 6. Delete likes related to this user
   await Like.deleteMany({
-    $or: [
-      { likedBy: userId },
-      { postId: { $in: postIds } },
-    ],
+    $or: [{ likedBy: userId }, { postId: { $in: postIds } }],
   });
 
-  // 4. Delete comments related to this user
-  //    - Comments created by the user
-  //    - Comments on the user's posts
+  // 7. Delete comments related to this user
   await Comment.deleteMany({
-    $or: [
-      { commentUserId: userId },
-      { postId: { $in: postIds } },
-    ],
+    $or: [{ commentUserId: userId }, { postId: { $in: postIds } }],
   });
 
-  // 5. Delete all posts created by the user
+  // 8. Delete all posts created by the user
   await Post.deleteMany({
     owner: userId,
   });
 
-  // 6. Finally delete the user
+  // 9. Finally delete the user
   await User.findByIdAndDelete(userId);
 
   return res
@@ -801,8 +807,8 @@ const deleteAccount = Asynchandler(async (req, res) => {
       new Apiresponse(
         200,
         {},
-        "Account and all associated data deleted successfully"
-      )
+        "Account and all associated data deleted successfully",
+      ),
     );
 });
 
