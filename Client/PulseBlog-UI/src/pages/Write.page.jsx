@@ -55,7 +55,7 @@ const WritePage = () => {
 
         setTitle(post.title || "");
         setTags(
-          Array.isArray(post.tags) ? post.tags.join(", ") : post.tags || ""
+          Array.isArray(post.tags) ? post.tags.join(", ") : post.tags || "",
         );
         setThumbnailPreview(post.mediaImage || "");
 
@@ -71,7 +71,7 @@ const WritePage = () => {
         }
       } catch (err) {
         toast.error(
-          err?.response?.data?.message || "Failed to fetch post details"
+          err?.response?.data?.message || "Failed to fetch post details",
         );
         navigate("/dashboard");
       } finally {
@@ -160,12 +160,12 @@ const WritePage = () => {
         const formattedTags = Array.isArray(tags)
           ? tags.join(",")
           : typeof tags === "string"
-          ? tags
-              .split(",")
-              .map((t) => t.trim())
-              .filter(Boolean)
-              .join(",")
-          : "";
+            ? tags
+                .split(",")
+                .map((t) => t.trim())
+                .filter(Boolean)
+                .join(",")
+            : "";
 
         form.append("tags", formattedTags);
 
@@ -173,7 +173,7 @@ const WritePage = () => {
         if (postId) {
           response = await axiosInstance.patch(
             `/posts/update-post/${postId}`,
-            form
+            form,
           );
           toast.success(isPublished ? "Post updated!" : "Draft updated!");
         } else {
@@ -193,7 +193,7 @@ const WritePage = () => {
         setPublishLoading(false);
       }
     },
-    [content, title, thumbnail, tags, postId, navigate]
+    [content, title, thumbnail, tags, postId, navigate],
   );
 
   // AI Assets Generator Handler
@@ -232,8 +232,6 @@ const WritePage = () => {
 
   return (
     <section className="w-full min-h-screen bg-slate-50/60 text-slate-900 transition-colors">
-      
-
       <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {/* Header Title */}
         <h1
@@ -336,8 +334,8 @@ const WritePage = () => {
               {publishLoading
                 ? "Processing..."
                 : postId
-                ? "Update Post"
-                : "Publish"}
+                  ? "Update Post"
+                  : "Publish"}
             </button>
           </div>
         </div>
@@ -348,14 +346,14 @@ const WritePage = () => {
           onClose={() => setShowAIWorkspace(false)}
           loading={polishLoading}
           assetLoading={assetLoading}
-          onPolish={() => {
-            runPolish(
+          onPolish={async () => {
+            await runPolish(
               {
                 title,
                 tags,
                 content,
               },
-              postId
+              postId,
             );
             setShowAIWorkspace(false);
           }}
