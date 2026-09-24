@@ -39,12 +39,7 @@ axiosInstance.interceptors.response.use(
 
   // Failed response
   async (error) => {
-    console.log("🔥 AXIOS ERROR:", error);
-    console.log("🔥 MESSAGE:", error.message);
-    console.log("🔥 CODE:", error.code);
-    console.log("🔥 RESPONSE:", error.response);
-    console.log("🔥 REQUEST:", error.request);
-    console.log("🔥 URL:", error.config?.url);
+    
 
     const originalRequest = error.config;
 

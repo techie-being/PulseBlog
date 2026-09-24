@@ -225,23 +225,23 @@ const forgotPassword = Asynchandler(async (req, res) => {
 
   // 2. Create Reset Token
   const resetToken = crypto.randomBytes(20).toString("hex");
-  console.log("resetToken:", resetToken);
+  
 
   // 3. Hash token and save to DB
   user.forgotPasswordToken = crypto
     .createHash("sha256")
     .update(resetToken)
     .digest("hex");
-  console.log("forgot passwordtoken:", user.forgotPasswordToken);
+  
   user.forgotPasswordTokenExpiry = Date.now() + 15 * 60 * 1000; // 15 Mins
 
   await user.save({ validateBeforeSave: false });
 
   // 4. Send Email
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-  console.log("reseturl:", resetUrl);
+  
   const message = `You requested a password reset. Click the link to reset your password: \n\n ${resetUrl} \n\n If you didn't request this, please ignore this email.`;
-  console.log("message:", message);
+  
 
   try {
     await sendEmail({
@@ -337,7 +337,7 @@ const refreshToken = Asynchandler(async (req, res) => {
       "SECRET CHECK:",
       process.env.REFRESH_TOKEN_SECRET ? "Exists" : "MISSING!",
     );
-    console.log("TOKEN STRING:", incomingRefreshToken);
+    
 
     const decodedToken = jwt.verify(
       incomingRefreshToken,
@@ -614,8 +614,7 @@ const completeOnboarding = Asynchandler(async (req, res) => {
   let { interests } = req.body;
 
   console.log("\n================ [DEBUG ONBOARDING] ================");
-  console.log("1. req.user._id:", req.user?._id);
-  console.log("2. Raw req.body.interests:", interests);
+  
 
   // Parse input
   if (typeof interests === "string") {
@@ -634,13 +633,12 @@ const completeOnboarding = Asynchandler(async (req, res) => {
   }
 
   const interestString = interests.join(", ");
-  console.log("3. Cleaned Interest String:", interestString);
+  
 
   // Generate vector
   const rawVector = await generateEmbedding(`${interestString}`);
 
-  console.log("4. rawVector type:", typeof rawVector);
-  console.log("5. Is Array:", Array.isArray(rawVector));
+  
 
   if (!rawVector) {
     throw new Apierror(500, "Failed to generate interest profile.");
@@ -651,8 +649,7 @@ const completeOnboarding = Asynchandler(async (req, res) => {
     ? rawVector.flat(Infinity).map((num) => Number(num))
     : [];
 
-  console.log("6. Final Vector Length:", currentVector.length);
-  console.log("7. First 5 Vector Values:", currentVector.slice(0, 5));
+  
 
   // Perform Update
   const updateResult = await User.updateOne(
@@ -668,15 +665,12 @@ const completeOnboarding = Asynchandler(async (req, res) => {
     { new: true },
   );
 
-  console.log("8. MongoDB Update Result:", updateResult);
+  console.log("updated result");
   console.log("===================================================\n");
 
   // Fetch from DB right after update to verify
   const verifiedUser = await User.findById(req.user._id).lean();
-  console.log(
-    "9. DB Sample after update:",
-    verifiedUser?.userIntrestVector?.slice(0, 5),
-  );
+  
 
   if (updateResult.matchedCount === 0) {
     throw new Apierror(404, "User document was not found for update.");

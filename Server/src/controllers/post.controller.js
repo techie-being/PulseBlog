@@ -132,20 +132,13 @@ const getAllPost = Asynchandler(async (req, res) => {
 
   // COLD START / NOT READY
   if (!shouldUsePersonalizedFeed) {
-    console.log("🧊 Using latest feed", {
-      hasExplicitProfile,
-      behavioralSignalCount,
-      hasValidVector,
-    });
+    console.log("🧊 Using latest feed");
 
     return latestPosts();
   }
 
   // PERSONALIZED FEED
-  console.log("🎯 Using personalized feed", {
-    hasExplicitProfile,
-    behavioralSignalCount,
-  });
+  console.log("🎯 Using personalized feed");
 
   // Match stage
   const matchStage = {
@@ -204,8 +197,8 @@ const getAllPost = Asynchandler(async (req, res) => {
 
   const result = await paginateAggregate(Post, smartFeed, page, limit);
 
-  console.log("🎯 PERSONALIZED PAGINATION:", result.pagination);
-  console.log("🎯 PERSONALIZED POSTS:", result.data.length);
+  console.log("🎯 PERSONALIZED PAGINATION:");
+  console.log("🎯 PERSONALIZED POSTS:");
 
   if (!result?.data || result.data.length === 0) {
     console.log("No personalized posts found. Returning latest posts.");
@@ -426,7 +419,7 @@ const togglePostStatus = Asynchandler(async (req, res) => {
   post.isPublished = !post.isPublished;
   const updatedPost = await post.save();
 
-  console.log("Saved publish state:", updatedPost.isPublished);
+  console.log("Saved publish state:");
 
   const verify = await Post.findById(postId);
   console.log("Database state:", verify.isPublished);
@@ -591,19 +584,7 @@ const searchPostsDiscovery = Asynchandler(async (req, res) => {
 
     const tagMatch = tags.some((tag) => tag.includes(normalizedQuery));
 
-    /*
-     * For a single-word query:
-     *
-     * superhero -> Avengers
-     *
-     * tagMatch = true
-     *
-     * For:
-     *
-     * xyzabc123 -> random post
-     *
-     * no lexical evidence.
-     */
+    
     const strongLexicalMatch = exactPhraseMatch || titleMatch || tagMatch;
 
     /*
