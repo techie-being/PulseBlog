@@ -31,9 +31,7 @@ import axiosInstance from "./api/axiosInstance";
 const App = () => {
   const dispatch = useDispatch();
 
-  const isAuthInitialized = useSelector(
-    (state) => state.auth.authInitialized
-  );
+  const isAuthInitialized = useSelector((state) => state.auth.authInitialized);
 
   useEffect(() => {
     console.log("🔥 App auth useEffect RUNNING");
@@ -44,11 +42,7 @@ const App = () => {
 
         const res = await axiosInstance.get("/users/current-user");
 
-        console.log("🔥 Current-user response:", res.data);
-
         const user = res.data.data;
-
-        console.log("Before Redux:", user);
 
         dispatch(loginSuccess(user));
 
@@ -72,7 +66,17 @@ const App = () => {
   }, [dispatch]);
 
   if (!isAuthInitialized) {
-    return <div>authentication checking ...</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+        <h1 className="font-gelasio text-4xl font-bold text-black">
+          PulseBlog
+        </h1>
+
+        <div className="mt-6 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-black"></div>
+
+        <p className="mt-4 text-sm text-gray-500">Loading your workspace...</p>
+      </div>
+    );
   }
 
   return (
@@ -96,34 +100,16 @@ const App = () => {
           <Route index element={<HomePage />} />
 
           {/* Standard Auth */}
-          <Route
-            path="signin"
-            element={<UserAuthForm type="sign-in" />}
-          />
-          <Route
-            path="signup"
-            element={<UserAuthForm type="sign-up" />}
-          />
+          <Route path="signin" element={<UserAuthForm type="sign-in" />} />
+          <Route path="signup" element={<UserAuthForm type="sign-up" />} />
 
           {/* Password Recovery */}
-          <Route
-            path="forgot-password"
-            element={<ForgotPassword />}
-          />
-          <Route
-            path="reset-password/:token"
-            element={<ResetPassword />}
-          />
+          <Route path="forgot-password" element={<ForgotPassword />} />
+          <Route path="reset-password/:token" element={<ResetPassword />} />
 
           {/* Google Auth Redirects */}
-          <Route
-            path="login-success"
-            element={<LoginSuccess />}
-          />
-          <Route
-            path="login-failed"
-            element={<LoginFailed />}
-          />
+          <Route path="login-success" element={<LoginSuccess />} />
+          <Route path="login-failed" element={<LoginFailed />} />
 
           {/* Editor / Content Creation */}
           <Route path="write" element={<WritePage />} />
