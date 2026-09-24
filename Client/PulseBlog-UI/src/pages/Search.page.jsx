@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 import PostCard from "../components/PostCard.component";
 import axiosInstance from "../api/axiosInstance";
@@ -133,7 +133,7 @@ const SearchPage = () => {
 
   return (
     <section className="max-w-3xl mx-auto py-8 px-4 sm:px-6">
-      <Toaster position="top-center" />
+      
 
       {/* ==================== SEARCH FORM ==================== */}
       <form

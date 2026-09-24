@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import axiosInstance from "../api/axiosInstance";
 
 import ConfirmationModal from "../components/ConfirmationModal.component";
@@ -160,7 +160,7 @@ const DashboardPage = () => {
 
   return (
     <section className="py-8 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
-      <Toaster />
+    
 
       {/* Header & New Post Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">

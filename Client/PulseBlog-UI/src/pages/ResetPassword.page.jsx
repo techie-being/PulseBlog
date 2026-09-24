@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 const ResetPassword = () => {
   const { token } = useParams();
@@ -58,8 +58,7 @@ const ResetPassword = () => {
 
   return (
     <section className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 sm:px-6 py-12 bg-white transition-colors duration-200">
-      <Toaster position="top-center" />
-
+      
       <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-8 shadow-sm hover:shadow-md transition-shadow">
         {/* Subtle Icon Badge */}
         <div className="w-12 h-12 rounded-full bg-slate-50/80 text-slate-800 border border-slate-200 flex items-center justify-center mx-auto mb-5 shrink-0">

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { loginSuccess } from "../redux/slices/authSlice";
 import axiosInstance from "../api/axiosInstance";
 
@@ -76,7 +76,7 @@ const LoginSuccess = () => {
 
   return (
     <section className="h-cover flex flex-col items-center justify-center gap-4 p-4 text-center">
-      <Toaster />
+      
 
       <div className="relative flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-purple/20 border-t-purple rounded-full animate-spin" />

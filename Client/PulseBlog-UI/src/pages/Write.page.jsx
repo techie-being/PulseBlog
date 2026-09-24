@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import EditorComponent from "../components/Editor.component.jsx";
 import axiosInstance from "../api/axiosInstance.js";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import useAssetGenerator from "../hooks/useAssetGenerator.js";
 import usePolishDraft from "../hooks/usePolishDraft.js";
 import PolishPreviewModal from "../components/author-ai/PolishPreviewModal.jsx";
@@ -232,7 +232,7 @@ const WritePage = () => {
 
   return (
     <section className="w-full min-h-screen bg-slate-50/60 text-slate-900 transition-colors">
-      <Toaster position="top-center" />
+      
 
       <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         {/* Header Title */}

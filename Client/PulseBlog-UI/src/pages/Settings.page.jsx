@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import axiosInstance from "../api/axiosInstance";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 const SettingsPage = () => {
   const { user } = useSelector((state) => state.auth);
@@ -105,7 +105,7 @@ const SettingsPage = () => {
 
   return (
     <section className="max-w-3xl mx-auto py-10 sm:py-12 px-4">
-      <Toaster position="top-center" />
+      
 
       {/* ================= HEADER ================= */}
 

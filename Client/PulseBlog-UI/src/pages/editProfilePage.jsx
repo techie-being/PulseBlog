@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 const EditProfilePage = () => {
   const navigate = useNavigate();
@@ -212,7 +212,7 @@ const EditProfilePage = () => {
 
   return (
     <section className="max-w-3xl mx-auto py-6 sm:py-10 px-3 sm:px-4">
-      <Toaster position="top-center" />
+      
 
       <form
         onSubmit={handleSaveProfile}

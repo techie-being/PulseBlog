@@ -3,7 +3,7 @@ import { useNavigate, Navigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { updateUser } from "../redux/slices/authSlice";
 import axiosInstance from "../api/axiosInstance";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 const INTEREST_OPTIONS = [
   "Technology",
@@ -108,7 +108,7 @@ const OnboardingPage = () => {
 
   return (
     <section className="h-cover flex items-center justify-center px-4 py-10">
-      <Toaster position="top-center" />
+      
       <div className="w-full max-w-2xl bg-white dark:bg-gray-900 border border-grey/80 p-6 sm:p-10 rounded-3xl shadow-sm">
         {/* Header */}
         <div className="text-center mb-8">
